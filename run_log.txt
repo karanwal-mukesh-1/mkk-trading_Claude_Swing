@@ -35,3 +35,40 @@
 2026-02-28 23:26:52,960 [INFO] Saved 8 results to DB
 2026-02-28 23:26:52,960 [INFO] Scan complete: 8 setups saved
 2026-02-28 23:26:52,962 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-02-28 23:42:55,334 [INFO] ═══ MKK AUTOMATION START | mode=SCAN_ONLY | 2026-02-28T23:42:55.334416 ═══
+2026-02-28 23:42:55,336 [INFO] DB connected: mkk_system.db
+2026-02-28 23:42:55,965 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-02-28 23:42:55,967 [INFO] Regime: BEAR_WK (score=31)
+2026-02-28 23:42:55,971 [INFO] Computing sector heatmap...
+2026-02-28 23:42:55,978 [INFO] Scan start: 2190 stocks | BEAR_WK
+2026-02-28 23:43:39,798 [INFO]   Progress: 250/2190 setups=1 0.7min
+2026-02-28 23:44:26,182 [INFO]   Progress: 500/2190 setups=1 1.5min
+2026-02-28 23:45:10,895 [INFO]   Progress: 750/2190 setups=1 2.2min
+2026-02-28 23:45:55,032 [INFO]   Progress: 1000/2190 setups=2 3.0min
+2026-02-28 23:46:38,605 [INFO]   Progress: 1250/2190 setups=2 3.7min
+2026-02-28 23:47:23,225 [INFO]   Progress: 1500/2190 setups=4 4.5min
+2026-02-28 23:48:05,907 [INFO]   Progress: 1750/2190 setups=5 5.2min
+2026-02-28 23:48:50,552 [INFO]   Progress: 2000/2190 setups=8 5.9min
+2026-02-28 23:49:26,727 [INFO] Scan done: 8 setups in 6.5min
+2026-02-28 23:49:26,728 [INFO] ── SCAN FUNNEL ─────────────────────────────────────────
+2026-02-28 23:49:26,728 [INFO]   Total scanned    : 2190
+2026-02-28 23:49:26,728 [INFO]   Data failed      : 118
+2026-02-28 23:49:26,728 [INFO]   Price/vol pass   : 676
+2026-02-28 23:49:26,728 [INFO]   Trend pass       : 60
+2026-02-28 23:49:26,728 [INFO]   Consolidation    : 44
+2026-02-28 23:49:26,728 [INFO]   Momentum         : 35
+2026-02-28 23:49:26,728 [INFO]   RS pass          : 19
+2026-02-28 23:49:26,728 [INFO]   RS slope pass    : 17
+2026-02-28 23:49:26,728 [INFO]   VCP pass         : 8
+2026-02-28 23:49:26,728 [INFO]   Corr filtered    : 0
+2026-02-28 23:49:26,728 [INFO]   Sector blocked   : 0
+2026-02-28 23:49:26,728 [INFO]   Macro blackout   : 0
+2026-02-28 23:49:26,728 [INFO]   Score filtered   : 0
+2026-02-28 23:49:26,728 [INFO]   Heat blocked     : 0
+2026-02-28 23:49:26,728 [INFO]   ELITE SETUPS     : 8
+2026-02-28 23:49:26,728 [INFO] ────────────────────────────────────────────────────────
+2026-02-28 23:49:26,730 [INFO] Computing sector heatmap...
+2026-02-28 23:49:26,738 [INFO] Saved 8 results to DB
+2026-02-28 23:49:26,739 [INFO] Scan complete: 8 setups saved
+2026-02-28 23:49:27,688 [INFO] Email sent: MKK Scan Summary | 2026-02-28 | BEAR_WK | 8 setups found
+2026-02-28 23:49:27,690 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
