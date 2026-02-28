@@ -319,7 +319,7 @@ def run_daily(cfg: Config, db: MKKDatabase, log) -> dict:
 
 
 def run_scan_only(cfg: Config, db: MKKDatabase, log):
-    """Scan and log results, no trade entry."""
+    """Scan and log results, no trade entry. Sends scan summary email."""
     re   = MarketRegimeEngine(cfg)
     re.detect()
     risk = RiskManager(cfg, re, db)
@@ -333,6 +333,52 @@ def run_scan_only(cfg: Config, db: MKKDatabase, log):
     scanner.save(sid)
     db.close_session(sid, scanner.st)
     log.info(f'Scan complete: {len(results)} setups saved')
+
+    # ── Email scan summary ─────────────────────────────────────────
+    today   = date.today().isoformat()
+    subject = (f"MKK Scan Summary | {today} | {re.regime} | "
+               f"{len(results)} setups found")
+    lines   = [
+        f'MKK SCAN SUMMARY — {today}',
+        '─' * 55,
+        f'Regime   : {re.regime}  (Score {re.score}/100)',
+        f'Nifty 50 : ₹{re.nifty_close():,.2f}',
+        f'Scanned  : {scanner.st["total"]} stocks in {scanner.st["dur"]:.1f} min',
+        f'Setups   : {len(results)} elite setups found',
+        '',
+    ]
+    if results:
+        lines.append(f'  {"Rank":<5} {"Ticker":<12} {"Score":>6} '
+                     f'{"PriScore":>9} {"Pattern":<18} {"Sector"}')
+        lines.append('  ' + '─' * 72)
+        for r in results:
+            lines.append(
+                f'  {r.get("Priority_Rank",0):<5} {r.get("Ticker",""):<12} '
+                f'{r.get("Score",0):>6} {r.get("Priority_Score",0):>9} '
+                f'{r.get("Pattern",""):<18} {r.get("Macro_Sector","")}')
+        top = results[0]
+        lines += [
+            '',
+            'TOP SETUP:',
+            '─' * 55,
+            f'  Ticker   : {top.get("Ticker")}',
+            f'  Pattern  : {top.get("Pattern")}  Score {top.get("Score")}/100',
+            f'  Sector   : {top.get("Macro_Sector")} › {top.get("Sector")}',
+            f'  Price    : ₹{top.get("Price",0):,.2f}',
+            f'  Stop     : ₹{top.get("Stop_Loss",0):,.2f}  Risk {top.get("Risk_%",0):.1f}%',
+            f'  T1/T2/T3 : ₹{top.get("T1",0):,.2f} / ₹{top.get("T2",0):,.2f} / ₹{top.get("T3",0):,.2f}',
+            f'  RS 3M    : {top.get("RS_3M","N/A")}  RS Rank {top.get("RS_Rank",0)}',
+            f'  Qty      : {top.get("Shares",0)}  Capital ₹{top.get("Capital",0):,.0f}',
+        ]
+    else:
+        lines.append('  No elite setups found today.')
+    lines += [
+        '',
+        '─' * 55,
+        'Note: SCAN_ONLY mode — no trades entered.',
+        'Switch to DAILY mode for automated paper trading.',
+    ]
+    send_email(cfg, subject, '\n'.join(lines))
 
 
 def run_exit_only(cfg: Config, db: MKKDatabase, log):
