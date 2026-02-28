@@ -1,0 +1,160 @@
+name: MKK Daily Paper Trading
+
+on:
+  schedule:
+    # 09:20 AM IST = 03:50 UTC  (IST is UTC+5:30)
+    # Run Mon–Fri only
+    - cron: '50 3 * * 1-5'
+
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: true
+        default: 'DAILY'
+        type: choice
+        options:
+          - DAILY
+          - SCAN_ONLY
+          - EXIT_ONLY
+          - BACKTEST
+          - REPORT
+
+# Prevent concurrent runs — only one daily job at a time
+concurrency:
+  group: mkk-daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: MKK Paper Trading Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 90       # scanner can take 60–75 min on 2,200 stocks
+
+    permissions:
+      contents: write          # needed to push updated DB back to repo
+
+    env:
+      EMAIL_SENDER:    ${{ secrets.EMAIL_SENDER }}
+      EMAIL_PASSWORD:  ${{ secrets.EMAIL_PASSWORD }}
+      EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+      DB_PATH:         mkk_system.db
+      TZ:              Asia/Kolkata
+
+    steps:
+      # ── 1. Checkout repo (includes mkk_system.db) ─────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # Use a dedicated token if you have one, otherwise GITHUB_TOKEN
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2. Python setup ───────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ── 3. Install dependencies ───────────────────────────────────
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 4. Verify DB exists, create empty one if first run ────────
+      - name: Initialise DB if first run
+        run: |
+          python - <<'EOF'
+          import os
+          from mkk_core import MKKDatabase, Config
+          db_path = os.getenv('DB_PATH', 'mkk_system.db')
+          if not os.path.exists(db_path) or os.path.getsize(db_path) < 1024:
+              print(f"Initialising new DB at {db_path}")
+              db = MKKDatabase(db_path)
+              db.close()
+              print("DB initialised with schema + 2026 macro events")
+          else:
+              print(f"DB exists: {os.path.getsize(db_path):,} bytes")
+          EOF
+
+      # ── 5. Run MKK system ─────────────────────────────────────────
+      - name: Run MKK automation
+        id: mkk_run
+        run: |
+          MODE="${{ github.event.inputs.mode || 'DAILY' }}"
+          echo "Running mode: $MODE"
+          python mkk_automation.py --mode "$MODE"
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      # ── 6. Commit and push updated DB + log ──────────────────────
+      #       Only runs if step 5 succeeded (exit code 0)
+      - name: Commit updated DB to repository
+        if: success()
+        run: |
+          git config --local user.email "mkk-bot@github.com"
+          git config --local user.name  "MKK Trading Bot"
+
+          # Stage DB and log (ignore if unchanged)
+          git add mkk_system.db run_log.txt || true
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            DATE=$(date +'%Y-%m-%d %H:%M IST')
+            git commit -m "MKK auto-run: $DATE [skip ci]"
+            git push
+            echo "DB committed and pushed."
+          fi
+
+      # ── 7. Upload log as artifact (always, even on failure) ───────
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkk-run-log-${{ github.run_id }}
+          path: run_log.txt
+          retention-days: 30
+
+      # ── 8. On failure: send error email + do NOT commit DB ────────
+      - name: Send failure notification
+        if: failure()
+        run: |
+          python - <<'EOF'
+          import os, smtplib, traceback
+          from email.mime.text import MIMEText
+          from datetime import date
+
+          sender  = os.getenv('EMAIL_SENDER', '')
+          pwd     = os.getenv('EMAIL_PASSWORD', '')
+          recip   = os.getenv('EMAIL_RECIPIENT', '')
+
+          if not all([sender, pwd, recip]):
+              print("Email secrets not configured — skipping failure email")
+              exit(0)
+
+          subject = f"⚠️ MKK System ERROR | {date.today().isoformat()} | GitHub Actions"
+          body    = (
+              f"MKK daily run FAILED on {date.today().isoformat()}.\n\n"
+              f"Check the GitHub Actions run log at:\n"
+              f"https://github.com/${{{{ github.repository }}}}/actions\n\n"
+              f"The database was NOT committed. Previous version is intact.\n\n"
+              f"Run ID: ${{{{ github.run_id }}}}\n"
+          )
+
+          try:
+              msg = MIMEText(body, 'plain', 'utf-8')
+              msg['Subject'] = subject
+              msg['From']    = sender
+              msg['To']      = recip
+              with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                  smtp.login(sender, pwd)
+                  smtp.sendmail(sender, recip, msg.as_string())
+              print("Failure email sent.")
+          except Exception as e:
+              print(f"Could not send failure email: {e}")
+          EOF
+
