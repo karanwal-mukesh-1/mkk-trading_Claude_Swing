@@ -136,13 +136,15 @@ jobs:
               print("Email secrets not configured — skipping failure email")
               exit(0)
 
-          subject = f"⚠️ MKK System ERROR | {date.today().isoformat()} | GitHub Actions"
+          repo   = os.getenv('GITHUB_REPOSITORY', 'your-repo')
+          run_id = os.getenv('GITHUB_RUN_ID', 'unknown')
+          subject = f"MKK System ERROR | {date.today().isoformat()} | GitHub Actions"
           body    = (
               f"MKK daily run FAILED on {date.today().isoformat()}.\n\n"
               f"Check the GitHub Actions run log at:\n"
-              f"https://github.com/${{{{ github.repository }}}}/actions\n\n"
+              f"https://github.com/{repo}/actions\n\n"
               f"The database was NOT committed. Previous version is intact.\n\n"
-              f"Run ID: ${{{{ github.run_id }}}}\n"
+              f"Run ID: {run_id}\n"
           )
 
           try:
@@ -157,4 +159,3 @@ jobs:
           except Exception as e:
               print(f"Could not send failure email: {e}")
           EOF
-
