@@ -3,7 +3,11 @@ name: MKK Daily Paper Trading
 on:
   schedule:
     # 09:20 AM IST = 03:50 UTC  (IST is UTC+5:30)
-    # Run Mon–Fri only
+    # GitHub Actions cron runs in UTC. IST = UTC+5:30.
+    # 09:20 IST = 03:50 UTC → cron '50 3 * * 1-5'
+    # Note: GitHub may delay cron by 5-30 min during peak hours.
+    # The 12 PM IST error emails are from MANUAL triggers, not cron.
+    # Cron scheduled runs arrive between 09:20-09:50 AM IST typically.
     - cron: '50 3 * * 1-5'
 
   # Allow manual trigger from GitHub Actions UI
@@ -86,8 +90,13 @@ jobs:
         run: |
           MODE="${{ github.event.inputs.mode || 'DAILY' }}"
           echo "Running mode: $MODE"
+          echo "Start time (UTC): $(date -u)"
+          echo "Start time (IST): $(TZ=Asia/Kolkata date)"
           python mkk_automation.py --mode "$MODE"
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "Finish time (IST): $(TZ=Asia/Kolkata date)"
+          exit $EXIT_CODE
 
       # ── 6. Commit and push updated DB + log ──────────────────────
       #       Only runs if step 5 succeeded (exit code 0)
