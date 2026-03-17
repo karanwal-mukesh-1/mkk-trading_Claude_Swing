@@ -93,7 +93,9 @@ class SectorHeatmap:
             "WHERE is_active=1 AND series IN ('EQ','BE') "
             "ORDER BY macro_sector, sector")
         if sector_dist.empty:
-            return rows
+            log.warning('Sector heatmap: universe query returned empty — '
+                        'using cached results if available')
+            return self._results if self._results else rows
         sector_groups = sector_dist.groupby(['macro_sector', 'sector'])
 
         # Hit rate from scan results
@@ -151,7 +153,14 @@ class SectorHeatmap:
         return self._gate_cache.get(f'{macro_sector}|{sector}', True)
 
     def top_sectors(self, n: int = 5) -> List[dict]:
-        df = pd.DataFrame(self._results).dropna(subset=['rs_3m'])
+        if not self._results:
+            return []
+        df = pd.DataFrame(self._results)
+        if 'rs_3m' not in df.columns:
+            return []
+        df = df.dropna(subset=['rs_3m'])
+        if df.empty:
+            return self._results[:n]   # return all sectors even if no RS data
         df = df.sort_values('rs_3m', ascending=False)
         return df.head(n).to_dict('records')
 
