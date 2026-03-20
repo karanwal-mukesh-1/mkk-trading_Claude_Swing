@@ -182,3 +182,16 @@
 2026-03-19 12:11:00,944 [INFO] Integrity: OK
 2026-03-19 12:11:00,945 [INFO] Daily run complete: 2s | 0 entries | 0 exits
 2026-03-19 12:11:00,946 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-03-20 11:41:45,360 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-03-20T11:41:45.360035 ═══
+2026-03-20 11:41:45,361 [INFO] DB connected: mkk_system.db
+2026-03-20 11:41:45,932 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-03-20 11:41:45,935 [INFO] Regime: BEAR (score=15)
+2026-03-20 11:41:45,940 [INFO] Universe: 2190 tickers
+2026-03-20 11:41:45,941 [INFO] No open paper trades to check for exits.
+2026-03-20 11:41:45,942 [INFO] Computing sector heatmap...
+2026-03-20 11:41:45,947 [INFO] BEAR regime — scanning skipped. Exits only.
+2026-03-20 11:41:45,950 [INFO] Portfolio snapshot: deployed=₹0 unreal=₹0 heat=0.0%
+2026-03-20 11:41:47,304 [INFO] Email sent: MKK Paper Trading | 2026-03-20 | BEAR | 0 entries | 0 exits
+2026-03-20 11:41:47,305 [INFO] Integrity: OK
+2026-03-20 11:41:47,305 [INFO] Daily run complete: 1s | 0 entries | 0 exits
+2026-03-20 11:41:47,306 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
