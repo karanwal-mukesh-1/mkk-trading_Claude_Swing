@@ -1188,3 +1188,18 @@
 2026-05-11 12:26:01,989 [INFO] Integrity: OK
 2026-05-11 12:26:01,989 [INFO] Daily run complete: 2s | 0 entries | 0 exits
 2026-05-11 12:26:01,990 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-05-12 11:58:49,934 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-05-12T11:58:49.934280 ═══
+2026-05-12 11:58:49,936 [INFO] DB connected: mkk_system.db
+2026-05-12 11:58:50,344 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-05-12 11:58:50,346 [INFO] Regime: BEAR (score=18)
+2026-05-12 11:58:50,352 [INFO] Universe: 2190 tickers
+2026-05-12 11:58:50,354 [INFO] Processing exits for 2 open trades...
+2026-05-12 11:58:50,491 [INFO] Paper exit: EXIT_PAPER_KIRLOSENG_20260508_112748_115850 | STOPPED_OUT | R=-0.79
+2026-05-12 11:58:50,491 [INFO] Exits processed: 1
+2026-05-12 11:58:50,493 [INFO] Computing sector heatmap...
+2026-05-12 11:58:50,520 [INFO] BEAR regime — scanning skipped. Exits only.
+2026-05-12 11:58:50,587 [INFO] Portfolio snapshot: deployed=₹24,380 unreal=₹1,100 heat=0.6%
+2026-05-12 11:58:51,258 [INFO] Email sent: MKK Paper Trading | 2026-05-12 | BEAR | 0 entries | 1 exits
+2026-05-12 11:58:51,260 [INFO] Integrity: OK
+2026-05-12 11:58:51,260 [INFO] Daily run complete: 1s | 0 entries | 1 exits
+2026-05-12 11:58:51,262 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
