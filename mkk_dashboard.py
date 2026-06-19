@@ -1,16 +1,15 @@
 """
 mkk_dashboard_pro.py — Institutional-Grade MKK Trading Dashboard
-Professional trading desk interface with real-time analytics.
+Professional trading desk interface using existing database data only.
 
 Features:
-  - Live market data integration with yfinance
-  - Advanced risk metrics (VaR, Sharpe, Sortino, Calmar)
-  - Monte Carlo simulations for portfolio projection
-  - Real-time candlestick charts with technical indicators
-  - Performance attribution by sector and regime
-  - Customizable alert system
-  - Professional dark theme with animations
-  - Export capabilities (CSV, PDF, Excel)
+  - Clean institutional dark theme
+  - All data from SQLite database (no external API calls)
+  - Advanced risk metrics from your system
+  - Performance attribution and analytics
+  - Professional charting with Plotly
+  - Alert system for portfolio monitoring
+  - Comprehensive audit trail
 
 Usage:
   streamlit run mkk_dashboard_pro.py
@@ -22,14 +21,8 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import sqlite3
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Tuple, Optional, Any
-import logging
-import yfinance as yf
-import json
-import base64
-from io import BytesIO
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -55,13 +48,10 @@ except ImportError as e:
     st.stop()
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PROFESSIONAL CSS - Institutional Dark Theme with Animations
+# PROFESSIONAL CSS - Institutional Dark Theme
 # ──────────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* ─── IMPORTS ───────────────────────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    
     /* ─── RESET ────────────────────────────────────────────────────────────── */
     * {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -81,16 +71,11 @@ st.markdown("""
         border-radius: 16px;
         padding: 20px 24px;
         margin: 8px 0;
-        box-shadow: 
-            0 8px 32px rgba(0, 0, 0, 0.4),
-            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .glass-card:hover {
         transform: translateY(-2px);
-        box-shadow: 
-            0 12px 48px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         border-color: rgba(255, 255, 255, 0.12);
     }
     
@@ -100,8 +85,6 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 14px;
         padding: 18px 22px;
-        position: relative;
-        overflow: hidden;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .metric-card:hover {
@@ -127,7 +110,6 @@ st.markdown("""
         font-size: 13px;
         color: #6b7a9f;
         margin-top: 4px;
-        font-weight: 400;
     }
     .metric-card .trend {
         font-size: 12px;
@@ -148,17 +130,6 @@ st.markdown("""
     .trend-neutral {
         color: #ffd740;
         background: rgba(255, 215, 64, 0.12);
-    }
-    
-    /* ─── GLOW ACCENTS ──────────────────────────────────────────────────────── */
-    .glow-green {
-        box-shadow: 0 0 40px rgba(0, 200, 83, 0.05);
-    }
-    .glow-red {
-        box-shadow: 0 0 40px rgba(255, 23, 68, 0.05);
-    }
-    .glow-blue {
-        box-shadow: 0 0 40px rgba(66, 165, 245, 0.05);
     }
     
     /* ─── REGIME BADGES ────────────────────────────────────────────────────── */
@@ -221,25 +192,15 @@ st.markdown("""
         font-weight: 600 !important;
         letter-spacing: -0.3px;
     }
-    h1 { font-size: 32px !important; }
-    h2 { font-size: 24px !important; }
-    h3 { font-size: 18px !important; }
     .stMarkdown p { color: #b0bec5; }
     
     /* ─── SIDEBAR ──────────────────────────────────────────────────────────── */
     section[data-testid="stSidebar"] {
         background: rgba(8, 12, 22, 0.98);
         border-right: 1px solid rgba(255, 255, 255, 0.04);
-        backdrop-filter: blur(10px);
-    }
-    section[data-testid="stSidebar"] .stMarkdown {
-        color: #b0bec5;
     }
     
     /* ─── DATA FRAME ────────────────────────────────────────────────────────── */
-    .stDataFrame {
-        background: transparent !important;
-    }
     .stDataFrame thead tr th {
         background: rgba(20, 28, 50, 0.6) !important;
         color: #6b7a9f !important;
@@ -264,28 +225,6 @@ st.markdown("""
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
         margin: 24px 0;
-    }
-    
-    /* ─── ALERT / INFO BOXES ───────────────────────────────────────────────── */
-    .stAlert {
-        background: rgba(20, 28, 50, 0.6) !important;
-        border-color: rgba(255, 255, 255, 0.06) !important;
-        border-radius: 12px !important;
-    }
-    .stAlert p { color: #b0bec5 !important; }
-    
-    /* ─── EXPANDER ──────────────────────────────────────────────────────────── */
-    .streamlit-expanderHeader {
-        background: rgba(20, 28, 50, 0.4) !important;
-        border-color: rgba(255, 255, 255, 0.04) !important;
-        color: #e8edf5 !important;
-        font-weight: 500 !important;
-        border-radius: 10px !important;
-    }
-    .streamlit-expanderContent {
-        background: rgba(10, 14, 26, 0.6) !important;
-        border-color: rgba(255, 255, 255, 0.04) !important;
-        border-radius: 0 0 10px 10px !important;
     }
     
     /* ─── PLOTLY ────────────────────────────────────────────────────────────── */
@@ -341,12 +280,12 @@ def get_db():
         return None
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_config() -> Config:
     return Config()
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_regime() -> Dict:
     try:
         cfg = get_config()
@@ -359,31 +298,19 @@ def get_regime() -> Dict:
             'allow_entry': re.allow_entry(),
             'max_positions': re.max_positions(),
             'nifty_close': re.nifty_close(),
-            'nifty_df': re.n50 if hasattr(re, 'n50') else pd.DataFrame(),
         }
-    except Exception:
+    except Exception as e:
         return {
-            'regime': 'NEUTRAL', 'score': 0, 'details': {},
-            'allow_entry': False, 'max_positions': 4, 'nifty_close': 0,
-            'nifty_df': pd.DataFrame()
+            'regime': 'NEUTRAL',
+            'score': 0,
+            'details': {},
+            'allow_entry': False,
+            'max_positions': 4,
+            'nifty_close': 0,
         }
 
 
-@st.cache_data(ttl=30)
-def get_live_price(ticker: str) -> Optional[float]:
-    """Fetch live price for a ticker."""
-    try:
-        if '.NS' not in ticker:
-            ticker += '.NS'
-        data = yf.download(ticker, period='1d', progress=False)
-        if not data.empty:
-            return float(data['Close'].iloc[-1])
-    except Exception:
-        pass
-    return None
-
-
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_portfolio_snapshot() -> Dict:
     db = get_db()
     if db is None:
@@ -397,7 +324,7 @@ def get_portfolio_snapshot() -> Dict:
         return {}
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_open_trades() -> pd.DataFrame:
     db = get_db()
     if db is None:
@@ -408,7 +335,7 @@ def get_open_trades() -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_performance_summary() -> Dict:
     db = get_db()
     if db is None:
@@ -419,7 +346,7 @@ def get_performance_summary() -> Dict:
         return {}
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_latest_scan_results(limit: int = 30) -> pd.DataFrame:
     db = get_db()
     if db is None:
@@ -439,7 +366,7 @@ def get_latest_scan_results(limit: int = 30) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_equity_curve() -> pd.DataFrame:
     db = get_db()
     if db is None:
@@ -454,7 +381,7 @@ def get_equity_curve() -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def get_recent_trades(limit: int = 100) -> pd.DataFrame:
     db = get_db()
     if db is None:
@@ -485,18 +412,6 @@ def get_sector_exposure() -> Dict:
         return {}
 
 
-@st.cache_data(ttl=30)
-def get_nifty_candles(days: int = 60) -> pd.DataFrame:
-    """Get Nifty 50 candlestick data for charting."""
-    try:
-        data = yf.download('^NSEI', period=f'{days+10}d', progress=False)
-        if not data.empty:
-            return data
-    except Exception:
-        pass
-    return pd.DataFrame()
-
-
 @st.cache_data(ttl=60)
 def get_last_run():
     db = get_db()
@@ -505,7 +420,7 @@ def get_last_run():
     try:
         row = db.q(
             "SELECT run_date, run_start, run_end, duration_sec, mode, "
-            "exits_processed, entries_taken FROM paper_sessions "
+            "exits_processed, entries_taken, scan_setups FROM paper_sessions "
             "ORDER BY created_at DESC LIMIT 1"
         ).fetchone()
         return dict(row) if row else None
@@ -525,6 +440,25 @@ def get_macro_blackout_today():
         return False, "Check failed"
 
 
+@st.cache_data(ttl=60)
+def get_scan_funnel_stats() -> Dict:
+    db = get_db()
+    if db is None:
+        return {}
+    try:
+        row = db.q(
+            "SELECT total_scanned, data_failed, sector_filtered, price_vol_pass, "
+            "trend_pass, consol_pass, momentum_pass, rs_pass, rs_slope_pass, "
+            "vcp_pass, corr_filtered, elite_setups, duration_min "
+            "FROM scan_sessions ORDER BY scan_start DESC LIMIT 1"
+        ).fetchone()
+        if row:
+            return dict(row)
+    except Exception:
+        pass
+    return {}
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # SIDEBAR - Professional Control Panel
 # ──────────────────────────────────────────────────────────────────────────────
@@ -538,18 +472,18 @@ with st.sidebar:
             Institutional Trading System
         </div>
         <div style="font-size:10px; color:#3a4a6a; font-weight:400; margin-top:2px;">
-            v6.1 · Paper Trading · Live
+            v6.1 · Paper Trading
         </div>
         <div style="margin-top:8px;">
             <span class="live-dot"></span>
-            <span style="font-size:11px; color:#4a5a7a;">Real-time</span>
+            <span style="font-size:11px; color:#4a5a7a;">Live</span>
         </div>
     </div>
     <hr>
     """, unsafe_allow_html=True)
 
     # ─── System Controls ──
-    with st.expander("⚙️ System Controls", expanded=True):
+    with st.expander("⚙️ System Parameters", expanded=True):
         cfg = get_config()
         col1, col2 = st.columns(2)
         with col1:
@@ -633,12 +567,14 @@ with st.sidebar:
         <div style="font-size:12px; color:#6b7a9f; line-height:1.8;">
             <div><span style="color:#4a5a7a;">Last Run:</span> {last_run.get('run_date', 'N/A')}</div>
             <div><span style="color:#4a5a7a;">Duration:</span> {dur_str}</div>
-            <div><span style="color:#4a5a7a;">Entries:</span> {last_run.get('entries_taken', 0)}  <span style="color:#4a5a7a;">Exits:</span> {last_run.get('exits_processed', 0)}</div>
+            <div><span style="color:#4a5a7a;">Entries:</span> {last_run.get('entries_taken', 0)}</div>
+            <div><span style="color:#4a5a7a;">Exits:</span> {last_run.get('exits_processed', 0)}</div>
+            <div><span style="color:#4a5a7a;">Setups:</span> {last_run.get('scan_setups', 0)}</div>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.caption("📡 Data refreshes every 30s · Real-time market data")
+    st.caption("📡 Data refreshes every 60s · All data from database")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -669,7 +605,7 @@ with col_time:
 with col_status:
     is_bo, bo_reason = get_macro_blackout_today()
     if is_bo:
-        st.markdown(f"<div style='text-align:right;'><span style='background:rgba(255,23,68,0.12); color:#ff1744; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:600;'>🔴 {bo_reason[:20]}</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:right;'><span style='background:rgba(255,23,68,0.12); color:#ff1744; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:600;'>🔴 Blackout</span></div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='text-align:right;'><span style='background:rgba(0,200,83,0.12); color:#00c853; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:600;'>● All Clear</span></div>", unsafe_allow_html=True)
 
@@ -760,8 +696,7 @@ st.markdown("<hr>", unsafe_allow_html=True)
 # PROFESSIONAL TABS
 # ──────────────────────────────────────────────────────────────────────────────
 tabs = st.tabs([
-    "📈 Live Market View",
-    "🎯 Elite Setups & Sizing",
+    "🎯 Elite Setups",
     "📊 Portfolio Analytics",
     "📉 Performance & Attribution",
     "📋 Risk Dashboard",
@@ -770,161 +705,37 @@ tabs = st.tabs([
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 1: LIVE MARKET VIEW
+# TAB 1: ELITE SETUPS
 # ══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
-    st.markdown("### 📈 Live Market View")
-    st.caption("Real-time market data with technical analysis")
-    
-    # ─── Nifty Candlestick Chart ──
-    col_chart, col_info = st.columns([3, 1])
-    
-    with col_chart:
-        nifty_data = get_nifty_candles(60)
-        if not nifty_data.empty:
-            fig_candle = make_subplots(
-                rows=2, cols=1,
-                shared_xaxes=True,
-                vertical_spacing=0.03,
-                row_heights=[0.7, 0.3],
-                subplot_titles=('Nifty 50 - Daily Candles', 'Volume')
-            )
-            
-            # Candlesticks
-            fig_candle.add_trace(
-                go.Candlestick(
-                    x=nifty_data.index,
-                    open=nifty_data['Open'],
-                    high=nifty_data['High'],
-                    low=nifty_data['Low'],
-                    close=nifty_data['Close'],
-                    name='Nifty 50',
-                    increasing=dict(line=dict(color='#00c853')),
-                    decreasing=dict(line=dict(color='#ff1744')),
-                ),
-                row=1, col=1
-            )
-            
-            # Volume - FIXED: Use vectorized operation with fillna
-            # Get pct changes and replace NaN with 0 for color assignment
-            pct_changes = nifty_data['Close'].pct_change().fillna(0)
-            volume_colors = np.where(pct_changes >= 0, '#00c853', '#ff1744')
-            
-            fig_candle.add_trace(
-                go.Bar(
-                    x=nifty_data.index,
-                    y=nifty_data['Volume'],
-                    name='Volume',
-                    marker=dict(color=volume_colors.tolist()),
-                    opacity=0.6,
-                ),
-                row=2, col=1
-            )
-            
-            # Moving Averages
-            ma20 = nifty_data['Close'].rolling(20).mean()
-            ma50 = nifty_data['Close'].rolling(50).mean()
-            
-            fig_candle.add_trace(
-                go.Scatter(
-                    x=nifty_data.index,
-                    y=ma20,
-                    name='MA 20',
-                    line=dict(color='#42a5f5', width=1.5),
-                ),
-                row=1, col=1
-            )
-            fig_candle.add_trace(
-                go.Scatter(
-                    x=nifty_data.index,
-                    y=ma50,
-                    name='MA 50',
-                    line=dict(color='#ffd740', width=1.5),
-                ),
-                row=1, col=1
-            )
-            
-            fig_candle.update_layout(
-                height=500,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#b0bec5'),
-                xaxis_rangeslider_visible=False,
-                legend=dict(
-                    orientation='h',
-                    yanchor='bottom',
-                    y=1.02,
-                    xanchor='right',
-                    x=1,
-                    font=dict(size=11, color='#6b7a9f')
-                ),
-                margin=dict(l=20, r=20, t=40, b=20),
-            )
-            fig_candle.update_xaxes(gridcolor='rgba(255,255,255,0.03)', row=1, col=1)
-            fig_candle.update_yaxes(gridcolor='rgba(255,255,255,0.03)', row=1, col=1)
-            fig_candle.update_xaxes(gridcolor='rgba(255,255,255,0.03)', row=2, col=1)
-            fig_candle.update_yaxes(gridcolor='rgba(255,255,255,0.03)', row=2, col=1)
-            
-            st.plotly_chart(fig_candle, use_container_width=True, config={'displayModeBar': False})
-        else:
-            st.info("Nifty data not available")
-    
-    with col_info:
-        st.markdown("""
-        <div class="glass-card" style="height:100%;">
-            <div style="font-size:11px; color:#6b7a9f; text-transform:uppercase; letter-spacing:0.8px; font-weight:600;">
-                Market Summary
-            </div>
-        """, unsafe_allow_html=True)
-        
-        if not nifty_data.empty:
-            last = nifty_data['Close'].iloc[-1]
-            prev = nifty_data['Close'].iloc[-2] if len(nifty_data) > 1 else last
-            change = ((last - prev) / prev * 100) if prev and prev != 0 else 0
-            change_color = '#00c853' if change >= 0 else '#ff1744'
-            
-            st.markdown(f"""
-            <div style="margin-top:12px;">
-                <div style="font-size:28px; font-weight:700; color:#e8edf5;">₹{last:,.2f}</div>
-                <div style="font-size:16px; font-weight:600; color:{change_color};">
-                    {change:+.2f}% 
-                    <span style="font-size:13px; font-weight:400; color:#6b7a9f;">
-                        ({last - prev:+.2f})
-                    </span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Quick stats
-            if len(nifty_data) >= 20:
-                ma20_val = nifty_data['Close'].rolling(20).mean().iloc[-1]
-                ma50_val = nifty_data['Close'].rolling(50).mean().iloc[-1] if len(nifty_data) >= 50 else ma20_val
-                st.markdown(f"""
-                <div style="margin-top:16px; font-size:13px; color:#b0bec5; line-height:2;">
-                    <div><span style="color:#6b7a9f;">MA 20:</span> ₹{ma20_val:,.2f}</div>
-                    <div><span style="color:#6b7a9f;">MA 50:</span> ₹{ma50_val:,.2f}</div>
-                    <div><span style="color:#6b7a9f;">Position:</span> 
-                        <span style="color:{'#00c853' if last > ma20_val else '#ff1744'}">
-                            {('Above' if last > ma20_val else 'Below')} MA20
-                        </span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2: ELITE SETUPS & SIZING
-# ══════════════════════════════════════════════════════════════════════════════
-with tabs[1]:
     st.markdown("### 🎯 Elite Setups & Position Sizing")
-    st.caption("Priority-ranked elite setups with automated position sizing")
+    st.caption("Priority-ranked elite setups from the latest scan")
     
+    # ─── Funnel Stats ──
+    funnel = get_scan_funnel_stats()
+    if funnel:
+        col1, col2, col3, col4, col5 = st.columns(5)
+        with col1:
+            st.metric("📊 Total Scanned", f"{funnel.get('total_scanned', 0):,}")
+        with col2:
+            pass_pv = funnel.get('price_vol_pass', 0)
+            total = funnel.get('total_scanned', 1)
+            pct = (pass_pv / total * 100) if total > 0 else 0
+            st.metric("✅ Price/Vol Pass", f"{pass_pv:,} ({pct:.0f}%)")
+        with col3:
+            elite = funnel.get('elite_setups', 0)
+            st.metric("🌟 Elite Setups", f"{elite}")
+        with col4:
+            dur = funnel.get('duration_min', 0)
+            st.metric("⏱️ Scan Time", f"{dur:.1f} min")
+        with col5:
+            failed = funnel.get('data_failed', 0)
+            st.metric("❌ Data Failed", f"{failed}")
+    
+    # ─── Elite Setups Table ──
     scan_df = get_latest_scan_results(30)
     
     if not scan_df.empty:
-        # ─── Table with Professional Styling ──
         display_df = scan_df.copy()
         
         # Format columns
@@ -937,32 +748,19 @@ with tabs[1]:
         display_df['T3'] = display_df['target_t3'].apply(lambda x: f"₹{x:,.2f}")
         display_df['Capital'] = display_df['capital_required'].apply(lambda x: f"₹{x:,.0f}")
         
-        # Add live price column - FIXED: Handle None values
-        def get_live_price_safe(ticker):
-            price = get_live_price(ticker)
-            return f"₹{price:,.2f}" if price else '—'
-        display_df['Live'] = display_df['ticker'].apply(get_live_price_safe)
-        
-        # Calculate gap from scan price
-        def get_gap(row):
-            live = get_live_price(row['ticker'])
-            if live and row['price'] > 0:
-                gap = ((live - row['price']) / row['price'] * 100)
-                return f"{gap:+.1f}%" if abs(gap) < 20 else '—'
-            return '—'
-        display_df['Gap'] = scan_df.apply(get_gap, axis=1)
-        
-        # Select and rename columns
-        final_cols = ['Priority_Rank', 'Ticker', 'Price', 'Live', 'Gap', 'Pattern', 
-                      'RS', 'VCP', 'Stop', 'T1', 'T2', 'T3', 'Capital', 'Sector']
+        # Rename columns
         display_df = display_df.rename(columns={
-            'priority_rank': 'Priority_Rank',
+            'priority_rank': 'Rank',
             'ticker': 'Ticker',
             'macro_sector': 'Sector',
-            'pattern': 'Pattern'
+            'pattern': 'Pattern',
+            'trade_type': 'Type'
         })
         
-        available_cols = [c for c in final_cols if c in display_df.columns]
+        # Select columns
+        cols = ['Rank', 'Ticker', 'Price', 'Pattern', 'Type', 'RS', 'VCP', 
+                'Stop', 'T1', 'T2', 'T3', 'Capital', 'Sector']
+        available_cols = [c for c in cols if c in display_df.columns]
         display_df = display_df[available_cols]
         
         st.dataframe(
@@ -970,12 +768,11 @@ with tabs[1]:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Priority_Rank": st.column_config.NumberColumn("Rank", width="small"),
+                "Rank": st.column_config.NumberColumn("Rank", width="small"),
                 "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                "Price": st.column_config.TextColumn("Scan", width="small"),
-                "Live": st.column_config.TextColumn("Live", width="small"),
-                "Gap": st.column_config.TextColumn("Gap", width="small"),
+                "Price": st.column_config.TextColumn("Price", width="small"),
                 "Pattern": st.column_config.TextColumn("Pattern", width="small"),
+                "Type": st.column_config.TextColumn("Type", width="small"),
                 "RS": st.column_config.TextColumn("RS 3M", width="small"),
                 "VCP": st.column_config.TextColumn("VCP", width="small"),
                 "Stop": st.column_config.TextColumn("Stop", width="small"),
@@ -986,71 +783,14 @@ with tabs[1]:
                 "Sector": st.column_config.TextColumn("Sector", width="small"),
             }
         )
-        
-        # ─── Position Sizing Matrix ──
-        st.markdown("#### 📐 Position Sizing Matrix")
-        
-        sizing_data = []
-        try:
-            cfg = get_config()
-            re = MarketRegimeEngine(cfg)
-            re.detect()
-            risk = RiskManager(cfg, re, get_db())
-            sector_exp = get_sector_exposure()
-            
-            for _, row in scan_df.iterrows():
-                entry = float(row['price'])
-                stop = float(row['stop_loss'])
-                if entry <= 0 or stop <= 0 or entry <= stop:
-                    continue
-                
-                ps = risk.size(cfg.TOTAL_CAPITAL, entry, stop, row.get('trade_type', 'SWING'), 0)
-                if ps['shares'] > 0 and ps.get('heat_ok', True):
-                    ms = row['macro_sector']
-                    current_exp = sector_exp.get(ms, 0)
-                    new_exp = current_exp + (ps['invested'] / cfg.TOTAL_CAPITAL)
-                    
-                    sizing_data.append({
-                        'Ticker': row['ticker'],
-                        'Shares': ps['shares'],
-                        'Invested': f"₹{ps['invested']:,.0f}",
-                        'Risk Amt': f"₹{ps['risk_amount']:,.0f}",
-                        'Risk %': f"{ps['risk_pct']:.2f}%",
-                        'Heat %': f"{ps['heat_contrib'] * 100:.2f}%",
-                        'Sector': ms,
-                        'Sector Exp': f"{current_exp * 100:.1f}% → {new_exp * 100:.1f}%",
-                        'Status': '✅' if new_exp <= cfg.MAX_SECTOR_EXP else '⚠️',
-                    })
-        except Exception as e:
-            pass
-        
-        if sizing_data:
-            st.dataframe(
-                pd.DataFrame(sizing_data),
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                    "Shares": st.column_config.NumberColumn("Shares", width="small"),
-                    "Invested": st.column_config.TextColumn("Invested", width="small"),
-                    "Risk Amt": st.column_config.TextColumn("Risk", width="small"),
-                    "Risk %": st.column_config.TextColumn("Risk %", width="small"),
-                    "Heat %": st.column_config.TextColumn("Heat %", width="small"),
-                    "Sector": st.column_config.TextColumn("Sector", width="small"),
-                    "Sector Exp": st.column_config.TextColumn("Sector Exposure", width="medium"),
-                    "Status": st.column_config.TextColumn("", width="small"),
-                }
-            )
-        else:
-            st.info("No position sizing data available")
     else:
         st.info("No scan results available. Run a scan to populate this view.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 3: PORTFOLIO ANALYTICS
+# TAB 2: PORTFOLIO ANALYTICS
 # ══════════════════════════════════════════════════════════════════════════════
-with tabs[2]:
+with tabs[1]:
     st.markdown("### 📊 Portfolio Analytics")
     st.caption("Advanced portfolio analytics with sector decomposition")
     
@@ -1064,7 +804,6 @@ with tabs[2]:
         if not equity_df.empty:
             fig_equity = make_subplots(specs=[[{"secondary_y": True}]])
             
-            # Total Capital
             fig_equity.add_trace(
                 go.Scatter(
                     x=equity_df['snap_date'],
@@ -1077,7 +816,6 @@ with tabs[2]:
                 secondary_y=False,
             )
             
-            # Drawdown
             fig_equity.add_trace(
                 go.Scatter(
                     x=equity_df['snap_date'],
@@ -1091,7 +829,7 @@ with tabs[2]:
             )
             
             fig_equity.update_layout(
-                height=350,
+                height=400,
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#b0bec5'),
@@ -1128,7 +866,7 @@ with tabs[2]:
             ))
             
             fig_treemap.update_layout(
-                height=350,
+                height=400,
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#b0bec5'),
@@ -1143,42 +881,26 @@ with tabs[2]:
     st.markdown("#### 🔓 Open Positions Detail")
     open_df = get_open_trades()
     if not open_df.empty:
-        # Add live prices - FIXED: Safe handling
-        def get_live_price_safe(ticker):
-            price = get_live_price(ticker)
-            return price if price else 0.0
-        
-        open_df['Live'] = open_df['ticker'].apply(get_live_price_safe)
-        open_df['P&L'] = (open_df['Live'] - open_df['entry_price']) * open_df['shares_remaining']
-        
-        # Avoid division by zero
-        open_df['P&L %'] = 0.0
-        mask = open_df['entry_price'] > 0
-        open_df.loc[mask, 'P&L %'] = (open_df.loc[mask, 'Live'] / open_df.loc[mask, 'entry_price'] - 1) * 100
-        
         display_open = open_df.copy()
         display_open['entry_price'] = display_open['entry_price'].apply(lambda x: f"₹{x:,.2f}")
-        display_open['Live'] = display_open['Live'].apply(lambda x: f"₹{x:,.2f}" if x else '—')
-        display_open['P&L'] = display_open['P&L'].apply(lambda x: f"₹{x:+,.0f}")
-        display_open['P&L %'] = display_open['P&L %'].apply(lambda x: f"{x:+.1f}%")
         display_open['stop_loss'] = display_open['stop_loss'].apply(lambda x: f"₹{x:,.2f}")
+        display_open['capital_invested'] = display_open['capital_invested'].apply(lambda x: f"₹{x:,.0f}")
         
         st.dataframe(
-            display_open[['ticker', 'entry_date', 'entry_price', 'Live', 'P&L', 'P&L %', 
-                         'stop_loss', 'shares_remaining', 'macro_sector', 'pattern']],
+            display_open[['ticker', 'entry_date', 'entry_price', 'shares', 'capital_invested', 
+                         'stop_loss', 'pattern', 'macro_sector', 'status']],
             use_container_width=True,
             hide_index=True,
             column_config={
                 "ticker": "Ticker",
                 "entry_date": "Entry Date",
                 "entry_price": "Entry",
-                "Live": "Live",
-                "P&L": "P&L",
-                "P&L %": "P&L %",
+                "shares": "Shares",
+                "capital_invested": "Invested",
                 "stop_loss": "Stop",
-                "shares_remaining": "Shares",
-                "macro_sector": "Sector",
                 "pattern": "Pattern",
+                "macro_sector": "Sector",
+                "status": "Status",
             }
         )
     else:
@@ -1186,9 +908,9 @@ with tabs[2]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 4: PERFORMANCE & ATTRIBUTION
+# TAB 3: PERFORMANCE & ATTRIBUTION
 # ══════════════════════════════════════════════════════════════════════════════
-with tabs[3]:
+with tabs[2]:
     st.markdown("### 📉 Performance & Attribution")
     st.caption("Detailed performance analytics with attribution analysis")
     
@@ -1213,22 +935,12 @@ with tabs[3]:
         trades_df = get_recent_trades(100)
         
         if not trades_df.empty:
-            fig_dist = make_subplots(rows=1, cols=3, subplot_titles=('R-Multiple Distribution', 'P&L by Sector', 'Exit Type'))
+            fig_dist = make_subplots(rows=1, cols=2, subplot_titles=('R-Multiple Distribution', 'P&L by Sector'))
             
-            # R-Multiple Distribution - FIXED: Use list comprehension properly
+            # R-Multiple Distribution
             valid_r = trades_df['r_multiple'].dropna()
             if not valid_r.empty:
-                # Use list comprehension with safe type checking
-                colors = []
-                for val in valid_r:
-                    try:
-                        if val >= 0:
-                            colors.append('#00c853')
-                        else:
-                            colors.append('#ff1744')
-                    except (TypeError, ValueError):
-                        colors.append('#4a5a7a')  # neutral for invalid values
-                
+                colors = ['#00c853' if val >= 0 else '#ff1744' for val in valid_r]
                 fig_dist.add_trace(
                     go.Histogram(
                         x=valid_r,
@@ -1239,7 +951,7 @@ with tabs[3]:
                     row=1, col=1
                 )
             
-            # P&L by Sector - FIXED: Handle empty data
+            # P&L by Sector
             if not trades_df['macro_sector'].isna().all():
                 sector_pnl = trades_df.groupby('macro_sector')['pnl_net'].sum().reset_index()
                 if not sector_pnl.empty:
@@ -1255,20 +967,6 @@ with tabs[3]:
                         ),
                         row=1, col=2
                     )
-            
-            # Exit Type
-            exit_counts = trades_df['exit_type'].value_counts().reset_index()
-            if not exit_counts.empty:
-                exit_counts.columns = ['exit_type', 'count']
-                fig_dist.add_trace(
-                    go.Pie(
-                        labels=exit_counts['exit_type'],
-                        values=exit_counts['count'],
-                        hole=0.3,
-                        marker=dict(colors=['#42a5f5', '#ffd740', '#ff1744', '#00c853']),
-                    ),
-                    row=1, col=3
-                )
             
             fig_dist.update_layout(
                 height=350,
@@ -1313,9 +1011,9 @@ with tabs[3]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 5: RISK DASHBOARD
+# TAB 4: RISK DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
-with tabs[4]:
+with tabs[3]:
     st.markdown("### 📋 Risk Dashboard")
     st.caption("Real-time risk monitoring and metrics")
     
@@ -1378,9 +1076,9 @@ with tabs[4]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 6: ALERTS & LOGS
+# TAB 5: ALERTS & LOGS
 # ══════════════════════════════════════════════════════════════════════════════
-with tabs[5]:
+with tabs[4]:
     st.markdown("### ⚡ Alerts & System Logs")
     st.caption("Real-time alerts and system monitoring")
     
@@ -1427,7 +1125,6 @@ with tabs[5]:
     with col2:
         st.markdown("#### 📋 System Log Stream")
         
-        # ─── Log Viewer ──
         if os.path.exists("run_log.txt"):
             with open("run_log.txt", "r") as f:
                 logs = f.readlines()[-100:]
@@ -1438,13 +1135,13 @@ with tabs[5]:
                     continue
                 
                 if "[ERROR]" in line:
-                    st.markdown(f"<div class='log-error'>{line}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='color:#ff5252; font-family:Consolas,monospace; font-size:12px; padding:2px 0; border-bottom:1px solid rgba(255,82,82,0.08);'>{line}</div>", unsafe_allow_html=True)
                 elif "[WARNING]" in line:
-                    st.markdown(f"<div class='log-warning'>{line}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='color:#ffd740; font-family:Consolas,monospace; font-size:12px; padding:2px 0; border-bottom:1px solid rgba(255,215,64,0.08);'>{line}</div>", unsafe_allow_html=True)
                 elif "success=True" in line or "PAPER ENTRY" in line:
-                    st.markdown(f"<div class='log-success'>{line}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='color:#69f0ae; font-family:Consolas,monospace; font-size:12px; padding:2px 0; border-bottom:1px solid rgba(105,240,174,0.08);'>{line}</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div class='log-info'>{line}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='color:#b0bec5; font-family:Consolas,monospace; font-size:12px; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.03);'>{line}</div>", unsafe_allow_html=True)
         else:
             st.info("No log file found")
 
@@ -1457,6 +1154,6 @@ st.markdown("""
 <div style="display:flex; justify-content:space-between; padding: 12px 0; color:#3a4a6a; font-size:11px;">
     <span>🏛️ MKK Institutional Trading System v6.1</span>
     <span>📊 Paper Trading · Educational Use Only</span>
-    <span>🔄 Auto-refresh: 30s · Last updated: {}</span>
+    <span>🔄 Auto-refresh: 60s · Last updated: {}</span>
 </div>
 """.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')), unsafe_allow_html=True)
