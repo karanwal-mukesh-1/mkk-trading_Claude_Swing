@@ -23,6 +23,8 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Tuple, Optional, Any
+import os
+import sys
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -457,6 +459,18 @@ def get_scan_funnel_stats() -> Dict:
     except Exception:
         pass
     return {}
+
+
+def read_log_file(log_path: str = "run_log.txt", max_lines: int = 100) -> List[str]:
+    """Read log file safely."""
+    try:
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding='utf-8') as f:
+                lines = f.readlines()
+                return lines[-max_lines:] if lines else []
+    except Exception:
+        pass
+    return []
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1125,11 +1139,11 @@ with tabs[4]:
     with col2:
         st.markdown("#### 📋 System Log Stream")
         
-        if os.path.exists("run_log.txt"):
-            with open("run_log.txt", "r") as f:
-                logs = f.readlines()[-100:]
-            
-            for line in logs:
+        # ─── Log Viewer ──
+        log_lines = read_log_file("run_log.txt", 100)
+        
+        if log_lines:
+            for line in log_lines:
                 line = line.strip()
                 if not line:
                     continue
@@ -1143,7 +1157,7 @@ with tabs[4]:
                 else:
                     st.markdown(f"<div style='color:#b0bec5; font-family:Consolas,monospace; font-size:12px; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.03);'>{line}</div>", unsafe_allow_html=True)
         else:
-            st.info("No log file found")
+            st.info("No log file found or log is empty")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
