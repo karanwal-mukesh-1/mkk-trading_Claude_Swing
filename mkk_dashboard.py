@@ -805,16 +805,17 @@ with tabs[0]:
                 row=1, col=1
             )
             
-            # Volume - FIXED: Handle NaN values properly
+            # Volume - FIXED: Properly handle NaN values
             pct_changes = nifty_data['Close'].pct_change()
             volume_colors = []
-            for val in pct_changes:
+            for idx in range(len(pct_changes)):
+                val = pct_changes.iloc[idx]
                 if pd.isna(val):
-                    volume_colors.append('#4a5a7a')  # neutral color for NaN
+                    volume_colors.append('#4a5a7a')  # neutral gray for NaN
                 elif val >= 0:
-                    volume_colors.append('#00c853')
+                    volume_colors.append('#00c853')  # green for positive
                 else:
-                    volume_colors.append('#ff1744')
+                    volume_colors.append('#ff1744')  # red for negative
             
             fig_candle.add_trace(
                 go.Bar(
@@ -1149,10 +1150,10 @@ with tabs[2]:
     st.markdown("#### 🔓 Open Positions Detail")
     open_df = get_open_trades()
     if not open_df.empty:
-        # Add live prices
+        # Add live prices - FIXED: Safe handling
         def get_live_price_safe(ticker):
             price = get_live_price(ticker)
-            return price if price else 0
+            return price if price else 0.0
         
         open_df['Live'] = open_df['ticker'].apply(get_live_price_safe)
         open_df['P&L'] = (open_df['Live'] - open_df['entry_price']) * open_df['shares_remaining']
@@ -1221,37 +1222,36 @@ with tabs[3]:
         if not trades_df.empty:
             fig_dist = make_subplots(rows=1, cols=3, subplot_titles=('R-Multiple Distribution', 'P&L by Sector', 'Exit Type'))
             
-            # R-Multiple Distribution - FIXED: Handle NaN values
+            # R-Multiple Distribution - FIXED: Handle NaN values properly
             valid_r = trades_df['r_multiple'].dropna()
             if not valid_r.empty:
+                # Use a list comprehension instead of apply
+                colors = ['#00c853' if val >= 0 else '#ff1744' for val in valid_r]
                 fig_dist.add_trace(
                     go.Histogram(
                         x=valid_r,
                         nbinsx=30,
-                        marker=dict(
-                            color=valid_r.apply(
-                                lambda x: '#00c853' if x >= 0 else '#ff1744'
-                            )
-                        ),
+                        marker=dict(color=colors),
                         opacity=0.7,
                     ),
                     row=1, col=1
                 )
             
-            # P&L by Sector
-            sector_pnl = trades_df.groupby('macro_sector')['pnl_net'].sum().reset_index()
-            fig_dist.add_trace(
-                go.Bar(
-                    x=sector_pnl['macro_sector'],
-                    y=sector_pnl['pnl_net'],
-                    marker=dict(
-                        color=sector_pnl['pnl_net'].apply(
-                            lambda x: '#00c853' if x >= 0 else '#ff1744'
-                        )
+            # P&L by Sector - FIXED: Handle empty data
+            if not trades_df['macro_sector'].isna().all():
+                sector_pnl = trades_df.groupby('macro_sector')['pnl_net'].sum().reset_index()
+                fig_dist.add_trace(
+                    go.Bar(
+                        x=sector_pnl['macro_sector'],
+                        y=sector_pnl['pnl_net'],
+                        marker=dict(
+                            color=sector_pnl['pnl_net'].apply(
+                                lambda x: '#00c853' if x >= 0 else '#ff1744'
+                            )
+                        ),
                     ),
-                ),
-                row=1, col=2
-            )
+                    row=1, col=2
+                )
             
             # Exit Type
             exit_counts = trades_df['exit_type'].value_counts().reset_index()
