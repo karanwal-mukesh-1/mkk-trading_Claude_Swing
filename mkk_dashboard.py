@@ -34,10 +34,10 @@ logging.getLogger('streamlit').setLevel(logging.WARNING)
 # ──────────────────────────────────────────────────────────────────────────────
 # IMPORT CORE MODULES (READ-ONLY — NO MODIFICATIONS)
 # ──────────────────────────────────────────────────────────────────────────────
-# These are your existing modules — imported as-is
 try:
-    from mkk_core import Config, MKKDatabase, MarketRegimeEngine, SectorHeatmap
+    from mkk_core import Config, MKKDatabase, MarketRegimeEngine
     from mkk_core import TI, RiskManager, PriorityScorer, TCModel
+    from mkk_scanner import SectorHeatmap, EliteSwingScanner, BulkBacktest
 except ImportError as e:
     st.error(f"Failed to import core modules: {e}")
     st.info("Make sure you're running this from the same directory as your MKK system files.")
