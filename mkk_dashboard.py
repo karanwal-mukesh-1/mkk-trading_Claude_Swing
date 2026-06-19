@@ -24,13 +24,24 @@ import sys
 import os
 import re
 from typing import Dict, List, Tuple, Optional
+import logging
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SUPPRESS STREAMLIT WARNINGS
+# ──────────────────────────────────────────────────────────────────────────────
+logging.getLogger('streamlit').setLevel(logging.WARNING)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # IMPORT CORE MODULES (READ-ONLY — NO MODIFICATIONS)
 # ──────────────────────────────────────────────────────────────────────────────
 # These are your existing modules — imported as-is
-from mkk_core import Config, MKKDatabase, MarketRegimeEngine, SectorHeatmap
-from mkk_core import TI, RiskManager, PriorityScorer, TCModel
+try:
+    from mkk_core import Config, MKKDatabase, MarketRegimeEngine, SectorHeatmap
+    from mkk_core import TI, RiskManager, PriorityScorer, TCModel
+except ImportError as e:
+    st.error(f"Failed to import core modules: {e}")
+    st.info("Make sure you're running this from the same directory as your MKK system files.")
+    st.stop()
 
 # ──────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
@@ -221,6 +232,15 @@ st.markdown("""
     .js-plotly-plot .plotly .main-svg {
         background: transparent !important;
     }
+    
+    /* Info boxes */
+    .stAlert {
+        background: #13182b !important;
+        border-color: #2a3350 !important;
+    }
+    .stAlert p {
+        color: #b0bec5 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -230,8 +250,12 @@ st.markdown("""
 @st.cache_resource
 def get_db():
     """Singleton database connection with caching."""
-    cfg = Config()
-    return MKKDatabase(cfg.DB_PATH)
+    try:
+        cfg = Config()
+        return MKKDatabase(cfg.DB_PATH)
+    except Exception as e:
+        st.error(f"Failed to connect to database: {e}")
+        return None
 
 
 @st.cache_data(ttl=60)
@@ -243,30 +267,45 @@ def get_config() -> Config:
 @st.cache_data(ttl=60)
 def get_regime() -> Dict:
     """Get current market regime with caching."""
-    cfg = get_config()
-    re = MarketRegimeEngine(cfg)
-    re.detect()
-    return {
-        'regime': re.regime,
-        'score': re.score,
-        'details': re.details,
-        'allow_entry': re.allow_entry(),
-        'max_positions': re.max_positions(),
-        'nifty_close': re.nifty_close(),
-    }
+    try:
+        cfg = get_config()
+        re = MarketRegimeEngine(cfg)
+        re.detect()
+        return {
+            'regime': re.regime,
+            'score': re.score,
+            'details': re.details,
+            'allow_entry': re.allow_entry(),
+            'max_positions': re.max_positions(),
+            'nifty_close': re.nifty_close(),
+        }
+    except Exception as e:
+        return {
+            'regime': 'NEUTRAL',
+            'score': 0,
+            'details': {},
+            'allow_entry': False,
+            'max_positions': 4,
+            'nifty_close': 0,
+        }
 
 
 @st.cache_data(ttl=60)
 def get_last_run() -> Optional[Dict]:
     """Get the most recent paper session record."""
     db = get_db()
-    row = db.q(
-        "SELECT run_date, run_start, run_end, duration_sec, mode, regime, "
-        "exits_processed, entries_taken, scan_setups, email_sent "
-        "FROM paper_sessions ORDER BY created_at DESC LIMIT 1"
-    ).fetchone()
-    if row:
-        return dict(row)
+    if db is None:
+        return None
+    try:
+        row = db.q(
+            "SELECT run_date, run_start, run_end, duration_sec, mode, regime, "
+            "exits_processed, entries_taken, scan_setups, email_sent "
+            "FROM paper_sessions ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        if row:
+            return dict(row)
+    except Exception as e:
+        pass
     return None
 
 
@@ -274,11 +313,16 @@ def get_last_run() -> Optional[Dict]:
 def get_portfolio_snapshot() -> Dict:
     """Get latest portfolio snapshot."""
     db = get_db()
-    row = db.q(
-        "SELECT * FROM paper_snapshots ORDER BY snap_date DESC LIMIT 1"
-    ).fetchone()
-    if row:
-        return dict(row)
+    if db is None:
+        return {}
+    try:
+        row = db.q(
+            "SELECT * FROM paper_snapshots ORDER BY snap_date DESC LIMIT 1"
+        ).fetchone()
+        if row:
+            return dict(row)
+    except Exception:
+        pass
     return {}
 
 
@@ -286,67 +330,97 @@ def get_portfolio_snapshot() -> Dict:
 def get_open_trades() -> pd.DataFrame:
     """Get all open paper trades."""
     db = get_db()
-    return db.open_paper_trades()
+    if db is None:
+        return pd.DataFrame()
+    try:
+        return db.open_paper_trades()
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=60)
 def get_recent_exits(limit: int = 50) -> pd.DataFrame:
     """Get recent exits with trade context."""
     db = get_db()
-    return db.qdf(
-        "SELECT pe.*, pt.ticker, pt.macro_sector, pt.pattern, pt.entry_price "
-        "FROM paper_exits pe "
-        "JOIN paper_trades pt ON pe.trade_id = pt.trade_id "
-        "ORDER BY pe.created_at DESC LIMIT ?",
-        (limit,)
-    )
+    if db is None:
+        return pd.DataFrame()
+    try:
+        return db.qdf(
+            "SELECT pe.*, pt.ticker, pt.macro_sector, pt.pattern, pt.entry_price "
+            "FROM paper_exits pe "
+            "JOIN paper_trades pt ON pe.trade_id = pt.trade_id "
+            "ORDER BY pe.created_at DESC LIMIT ?",
+            (limit,)
+        )
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=60)
 def get_performance_summary() -> Dict:
     """Get performance metrics."""
     db = get_db()
-    return db.paper_perf_summary()
+    if db is None:
+        return {}
+    try:
+        return db.paper_perf_summary()
+    except Exception:
+        return {}
 
 
 @st.cache_data(ttl=60)
 def get_latest_scan_results(limit: int = 20) -> pd.DataFrame:
     """Get the most recent scan results with priority ranking."""
     db = get_db()
-    return db.qdf(
-        "SELECT ticker, price, score, priority_score, priority_rank, "
-        "trade_type, pattern, rs_3m, rs_rank, vcp_quality, to_resistance, "
-        "stop_loss, target_t1, target_t2, target_t3, shares_suggested, "
-        "capital_required, risk_inr, macro_sector, sector, above_200ma, "
-        "macd_positive, ema_cross "
-        "FROM scan_results "
-        "WHERE scan_date = (SELECT MAX(scan_date) FROM scan_results) "
-        "ORDER BY priority_rank LIMIT ?",
-        (limit,)
-    )
+    if db is None:
+        return pd.DataFrame()
+    try:
+        return db.qdf(
+            "SELECT ticker, price, score, priority_score, priority_rank, "
+            "trade_type, pattern, rs_3m, rs_rank, vcp_quality, to_resistance, "
+            "stop_loss, target_t1, target_t2, target_t3, shares_suggested, "
+            "capital_required, risk_inr, macro_sector, sector, above_200ma, "
+            "macd_positive, ema_cross "
+            "FROM scan_results "
+            "WHERE scan_date = (SELECT MAX(scan_date) FROM scan_results) "
+            "ORDER BY priority_rank LIMIT ?",
+            (limit,)
+        )
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=60)
 def get_scan_funnel_stats(session_id: str = None) -> Dict:
     """Get funnel statistics from the latest scan session."""
     db = get_db()
-    if session_id is None:
+    if db is None:
+        return {}
+    try:
+        if session_id is None:
+            row = db.q(
+                "SELECT session_id FROM scan_sessions "
+                "ORDER BY scan_start DESC LIMIT 1"
+            ).fetchone()
+            if not row:
+                return {}
+            session_id = row[0]
         row = db.q(
-            "SELECT session_id FROM scan_sessions "
-            "ORDER BY scan_start DESC LIMIT 1"
+            "SELECT total_scanned, data_failed, sector_filtered, price_vol_pass, "
+            "trend_pass, consol_pass, momentum_pass, rs_pass, rs_slope_pass, "
+            "vcp_pass, corr_filtered, elite_setups, duration_min "
+            "FROM scan_sessions WHERE session_id = ?",
+            (session_id,)
         ).fetchone()
-        if not row:
-            return {}
-        session_id = row[0]
-    row = db.q(
-        "SELECT total_scanned, data_failed, sector_filtered, price_vol_pass, "
-        "trend_pass, consol_pass, momentum_pass, rs_pass, rs_slope_pass, "
-        "vcp_pass, corr_filtered, elite_setups, duration_min "
-        "FROM scan_sessions WHERE session_id = ?",
-        (session_id,)
-    ).fetchone()
-    if row:
-        return dict(row)
+        if row:
+            result = dict(row)
+            # Add missing fields with defaults
+            result['score_filtered'] = result.get('score_filtered', 0)
+            result['heat_blocked'] = result.get('heat_blocked', 0)
+            result['macro_blackout'] = result.get('macro_blackout', 0)
+            return result
+    except Exception:
+        pass
     return {}
 
 
@@ -354,38 +428,58 @@ def get_scan_funnel_stats(session_id: str = None) -> Dict:
 def get_sector_snapshots() -> pd.DataFrame:
     """Get latest sector heatmap snapshot."""
     db = get_db()
-    return db.qdf(
-        "SELECT * FROM sector_snapshots "
-        "WHERE snap_date = (SELECT MAX(snap_date) FROM sector_snapshots) "
-        "ORDER BY rs_3m DESC"
-    )
+    if db is None:
+        return pd.DataFrame()
+    try:
+        return db.qdf(
+            "SELECT * FROM sector_snapshots "
+            "WHERE snap_date = (SELECT MAX(snap_date) FROM sector_snapshots) "
+            "ORDER BY rs_3m DESC"
+        )
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=60)
 def get_macro_blackout_today() -> Tuple[bool, str]:
     """Check if today is a macro blackout day."""
     db = get_db()
-    today = date.today().isoformat()
-    return db.is_macro_blackout(today)
+    if db is None:
+        return False, "DB unavailable"
+    try:
+        today = date.today().isoformat()
+        return db.is_macro_blackout(today)
+    except Exception:
+        return False, "Check failed"
 
 
 @st.cache_data(ttl=60)
 def get_equity_curve() -> pd.DataFrame:
     """Get the full equity curve."""
     db = get_db()
-    return db.qdf(
-        "SELECT snap_date, total_capital, deployed, cash, open_positions, "
-        "unrealized_pnl, realized_pnl_ytd, drawdown_pct, portfolio_heat "
-        "FROM paper_snapshots ORDER BY snap_date"
-    )
+    if db is None:
+        return pd.DataFrame()
+    try:
+        return db.qdf(
+            "SELECT snap_date, total_capital, deployed, cash, open_positions, "
+            "unrealized_pnl, realized_pnl_ytd, drawdown_pct, portfolio_heat "
+            "FROM paper_snapshots ORDER BY snap_date"
+        )
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=60)
 def get_sector_exposure() -> Dict:
     """Get current sector exposure percentages."""
-    cfg = get_config()
-    db = get_db()
-    return db.paper_sector_exposure(cfg)
+    try:
+        cfg = get_config()
+        db = get_db()
+        if db is None:
+            return {}
+        return db.paper_sector_exposure(cfg)
+    except Exception:
+        return {}
 
 
 @st.cache_data(ttl=60)
@@ -445,17 +539,20 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     # ── Config Metrics ──
-    cfg = get_config()
-    st.markdown("### ⚙️ System Parameters")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("💰 Capital", f"₹{cfg.TOTAL_CAPITAL:,.0f}")
-    with col2:
-        st.metric("📈 Max Positions", cfg.MAX_POSITIONS)
+    try:
+        cfg = get_config()
+        st.markdown("### ⚙️ System Parameters")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("💰 Capital", f"₹{cfg.TOTAL_CAPITAL:,.0f}")
+        with col2:
+            st.metric("📈 Max Positions", cfg.MAX_POSITIONS)
+    except Exception:
+        st.warning("⚠️ Could not load configuration")
 
     # ── Regime Status ──
     regime_data = get_regime()
-    regime = regime_data['regime']
+    regime = regime_data.get('regime', 'NEUTRAL')
     regime_class = {
         'BULL': 'regime-bull',
         'BULL_WK': 'regime-bull',
@@ -472,11 +569,11 @@ with st.sidebar:
         </span>
         <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
             <span class="{regime_class}">{regime}</span>
-            <span style="color:#6b7390; font-size:13px;">Score: {regime_data['score']}/100</span>
+            <span style="color:#6b7390; font-size:13px;">Score: {regime_data.get('score', 0)}/100</span>
         </div>
         <div style="font-size:12px; color:#6b7390; margin-top:4px;">
-            Nifty 50: ₹{regime_data['nifty_close']:,.2f}
-            { '🔓 Entries Open' if regime_data['allow_entry'] else '🔒 Entries Blocked' }
+            Nifty 50: ₹{regime_data.get('nifty_close', 0):,.2f}
+            {'🔓 Entries Open' if regime_data.get('allow_entry', False) else '🔒 Entries Blocked'}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -512,66 +609,71 @@ with st.sidebar:
 # ──────────────────────────────────────────────────────────────────────────────
 # MAIN HEADER — Meta Header with Key Metrics
 # ──────────────────────────────────────────────────────────────────────────────
-regime_data = get_regime()
-snapshot = get_portfolio_snapshot()
-perf = get_performance_summary()
+try:
+    cfg = get_config()
+    regime_data = get_regime()
+    snapshot = get_portfolio_snapshot()
+    perf = get_performance_summary()
 
-# Top bar metrics
-col1, col2, col3, col4, col5 = st.columns(5)
-with col1:
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="label">Total Capital</div>
-        <div class="value">₹{cfg.TOTAL_CAPITAL:,.0f}</div>
-        <div class="sub">Paper trading</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    deployed = snapshot.get('deployed', 0)
-    pct_deployed = (deployed / cfg.TOTAL_CAPITAL * 100) if cfg.TOTAL_CAPITAL > 0 else 0
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="label">Deployed</div>
-        <div class="value">₹{deployed:,.0f}</div>
-        <div class="sub">{pct_deployed:.1f}% of capital</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    n_open = snapshot.get('open_positions', 0)
-    max_pos = regime_data.get('max_positions', cfg.MAX_POSITIONS)
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="label">Open Positions</div>
-        <div class="value">{n_open} / {max_pos}</div>
-        <div class="sub">{'Fully allocated' if n_open >= max_pos else f'{max_pos - n_open} slots available'}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col4:
-    heat = snapshot.get('portfolio_heat', 0)
-    heat_cap = cfg.heat_cap(regime_data['regime']) * 100
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="label">Portfolio Heat</div>
-        <div class="value">{heat:.1f}%</div>
-        <div class="sub">Cap: {heat_cap:.1f}% · {'✓' if heat <= heat_cap else '⚠️ Over'}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col5:
-    total_pnl = perf.get('total_pnl', 0) if perf else 0
-    win_rate = perf.get('win_rate', 0) if perf else 0
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="label">Closed P&L</div>
-        <div class="value" style="color:{'#69f0ae' if total_pnl >= 0 else '#ff5252'}">
-            ₹{total_pnl:+,.0f}
+    # Top bar metrics
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="label">Total Capital</div>
+            <div class="value">₹{cfg.TOTAL_CAPITAL:,.0f}</div>
+            <div class="sub">Paper trading</div>
         </div>
-        <div class="sub">Win Rate: {win_rate:.1f}% · {perf.get('total', 0) if perf else 0} trades</div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+
+    with col2:
+        deployed = snapshot.get('deployed', 0)
+        pct_deployed = (deployed / cfg.TOTAL_CAPITAL * 100) if cfg.TOTAL_CAPITAL > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="label">Deployed</div>
+            <div class="value">₹{deployed:,.0f}</div>
+            <div class="sub">{pct_deployed:.1f}% of capital</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        n_open = snapshot.get('open_positions', 0)
+        max_pos = regime_data.get('max_positions', cfg.MAX_POSITIONS)
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="label">Open Positions</div>
+            <div class="value">{n_open} / {max_pos}</div>
+            <div class="sub">{'Fully allocated' if n_open >= max_pos else f'{max_pos - n_open} slots available'}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        heat = snapshot.get('portfolio_heat', 0)
+        heat_cap = cfg.heat_cap(regime_data.get('regime', 'NEUTRAL')) * 100
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="label">Portfolio Heat</div>
+            <div class="value">{heat:.1f}%</div>
+            <div class="sub">Cap: {heat_cap:.1f}% · {'✓' if heat <= heat_cap else '⚠️ Over'}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col5:
+        total_pnl = perf.get('total_pnl', 0) if perf else 0
+        win_rate = perf.get('win_rate', 0) if perf else 0
+        color = '#69f0ae' if total_pnl >= 0 else '#ff5252'
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="label">Closed P&L</div>
+            <div class="value" style="color:{color}">
+                ₹{total_pnl:+,.0f}
+            </div>
+            <div class="sub">Win Rate: {win_rate:.1f}% · {perf.get('total', 0) if perf else 0} trades</div>
+        </div>
+        """, unsafe_allow_html=True)
+except Exception as e:
+    st.warning(f"⚠️ Error loading metrics: {e}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -604,11 +706,13 @@ with tab1:
             st.metric("📉 Data Failed", f"{funnel.get('data_failed', 0)}")
         with col3:
             pass_pv = funnel.get('price_vol_pass', 0)
-            pct = (pass_pv / funnel.get('total_scanned', 1) * 100) if funnel.get('total_scanned', 0) > 0 else 0
+            total = funnel.get('total_scanned', 1)
+            pct = (pass_pv / total * 100) if total > 0 else 0
             st.metric("✅ Price/Vol Pass", f"{pass_pv:,} ({pct:.0f}%)")
         with col4:
             elite = funnel.get('elite_setups', 0)
-            pct_elite = (elite / funnel.get('total_scanned', 1) * 100) if funnel.get('total_scanned', 0) > 0 else 0
+            total = funnel.get('total_scanned', 1)
+            pct_elite = (elite / total * 100) if total > 0 else 0
             st.metric("🌟 Elite Setups", f"{elite} ({pct_elite:.2f}%)")
         with col5:
             dur = funnel.get('duration_min', 0)
@@ -629,35 +733,41 @@ with tab1:
             ("Elite Setups", funnel.get('elite_setups', 0)),
         ]
         
-        fig = go.Figure()
+        # Filter out zero values for cleaner display
+        stages = [s for s in stages if s[1] > 0]
         
-        # Build funnel trace
-        values = [s[1] for s in stages]
-        labels = [s[0] for s in stages]
-        
-        fig.add_trace(go.Funnel(
-            name="Scan Pipeline",
-            y=labels,
-            x=values,
-            textinfo="value+percent initial",
-            textposition="inside",
-            marker=dict(
-                color=["#1a3a5c", "#1e4a6a", "#2a5a7a", "#3a6a8a", "#4a7a9a", 
-                       "#5a8aaa", "#6a9aba", "#7aaaca", "#8aba5a"],
-                line=dict(width=1, color='#0e1117')
-            ),
-            connector=dict(line=dict(color="#2a3350", width=2)),
-        ))
-        
-        fig.update_layout(
-            height=500,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#b0bec5', size=13),
-            margin=dict(l=20, r=20, t=20, b=20),
-        )
-        
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        if len(stages) > 1:
+            fig = go.Figure()
+            
+            # Build funnel trace
+            values = [s[1] for s in stages]
+            labels = [s[0] for s in stages]
+            
+            fig.add_trace(go.Funnel(
+                name="Scan Pipeline",
+                y=labels,
+                x=values,
+                textinfo="value+percent initial",
+                textposition="inside",
+                marker=dict(
+                    color=["#1a3a5c", "#1e4a6a", "#2a5a7a", "#3a6a8a", "#4a7a9a", 
+                           "#5a8aaa", "#6a9aba", "#7aaaca", "#8aba5a"],
+                    line=dict(width=1, color='#0e1117')
+                ),
+                connector=dict(line=dict(color="#2a3350", width=2)),
+            ))
+            
+            fig.update_layout(
+                height=450,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#b0bec5', size=13),
+                margin=dict(l=20, r=20, t=20, b=20),
+            )
+            
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info("No scan data available for funnel visualization.")
         
         # ── Rejection Log ──
         with st.expander("📋 Rejection Log — Filter Breakdown", expanded=False):
@@ -668,16 +778,16 @@ with tab1:
                 "Count": [
                     funnel.get('data_failed', 0),
                     funnel.get('sector_filtered', 0),
-                    funnel.get('trend_pass', 0),  # These are passes, not rejections
+                    funnel.get('trend_pass', 0),
                     funnel.get('consol_pass', 0),
                     funnel.get('momentum_pass', 0),
                     funnel.get('rs_pass', 0),
                     funnel.get('rs_slope_pass', 0),
                     funnel.get('vcp_pass', 0),
                     funnel.get('corr_filtered', 0),
-                    funnel.get('score_filtered', 0) if 'score_filtered' in funnel else 0,
-                    funnel.get('heat_blocked', 0) if 'heat_blocked' in funnel else 0,
-                    funnel.get('macro_blackout', 0) if 'macro_blackout' in funnel else 0,
+                    funnel.get('score_filtered', 0),
+                    funnel.get('heat_blocked', 0),
+                    funnel.get('macro_blackout', 0),
                 ]
             }
             reject_df = pd.DataFrame(reject_data)
@@ -694,6 +804,8 @@ with tab1:
                 )
             else:
                 st.info("No stocks rejected at this stage.")
+    else:
+        st.info("No scan statistics available. Run a scan to populate this view.")
     
     # ── Elite Setups Table ──
     st.markdown("#### ⭐ Final Elite Setups")
@@ -716,6 +828,8 @@ with tab1:
         # Select columns for display
         display_cols = ['Ticker', 'Price', 'Score', 'Pattern', 'Trade_Type', 
                         'RS_3M', 'RS_Rank', 'VCP', 'Stop', 'T1', 'T2', 'T3', 'Cap Req']
+        
+        # Rename columns for display
         display_df = display_df.rename(columns={
             'ticker': 'Ticker',
             'trade_type': 'Trade_Type',
@@ -763,9 +877,6 @@ with tab1:
                 yaxis='y',
             ))
             
-            # Gate status overlay
-            gate_colors = ['#69f0ae' if g else '#ff5252' for g in sector_df['sector_gate']]
-            
             fig_sector.update_layout(
                 barmode='group',
                 height=350,
@@ -779,9 +890,8 @@ with tab1:
             )
             
             # Add annotations for gate status
-            for i, (row, color) in enumerate(zip(sector_df.iterrows(), gate_colors)):
-                idx, data = row
-                status = 'OPEN' if data['sector_gate'] else 'SHUT'
+            for i, row in sector_df.iterrows():
+                status = 'OPEN' if row['sector_gate'] else 'SHUT'
                 fig_sector.add_annotation(
                     x=i,
                     y=0.05,
@@ -836,48 +946,55 @@ with tab2:
     if not latest_scan.empty:
         # Calculate position sizes for elite setups
         sizing_data = []
-        cfg = get_config()
-        re = MarketRegimeEngine(cfg)
-        re.detect()
-        risk = RiskManager(cfg, re, get_db())
-        sector_exp = get_sector_exposure()
+        try:
+            cfg = get_config()
+            re = MarketRegimeEngine(cfg)
+            re.detect()
+            risk = RiskManager(cfg, re, get_db())
+            sector_exp = get_sector_exposure()
+        except Exception as e:
+            st.warning(f"⚠️ Risk engine error: {e}")
+            risk = None
+            sector_exp = {}
         
-        for _, row in latest_scan.iterrows():
-            entry = float(row['price'])
-            stop = float(row['stop_loss'])
-            if entry <= 0 or stop <= 0 or entry <= stop:
-                continue
-            
-            # Get risk sizing
-            ps = risk.size(cfg.TOTAL_CAPITAL, entry, stop, row['trade_type'], 
-                          float(row.get('avg_val', 0) or 0))
-            
-            if ps['shares'] > 0 and ps.get('heat_ok', True):
-                ms = row['macro_sector']
-                current_exp = sector_exp.get(ms, 0)
-                new_exp = current_exp + (ps['invested'] / cfg.TOTAL_CAPITAL)
-                sector_ok = new_exp <= cfg.MAX_SECTOR_EXP
-                
-                sizing_data.append({
-                    'Ticker': row['ticker'],
-                    'Entry': entry,
-                    'Stop': stop,
-                    'Shares': ps['shares'],
-                    'Invested': ps['invested'],
-                    'Risk Amount': ps['risk_amount'],
-                    'Risk %': ps['risk_pct'],
-                    'Heat Contrib %': ps['heat_contrib'] * 100,
-                    'Sector': ms,
-                    'Sector Exp %': current_exp * 100,
-                    'New Sector Exp %': new_exp * 100,
-                    'Sector OK': sector_ok,
-                    'Trade Type': row['trade_type'],
-                })
+        if risk:
+            for _, row in latest_scan.iterrows():
+                try:
+                    entry = float(row['price'])
+                    stop = float(row['stop_loss'])
+                    if entry <= 0 or stop <= 0 or entry <= stop:
+                        continue
+                    
+                    # Get risk sizing
+                    ps = risk.size(cfg.TOTAL_CAPITAL, entry, stop, row.get('trade_type', 'SWING'), 
+                                  float(row.get('avg_val', 0) or 0))
+                    
+                    if ps['shares'] > 0 and ps.get('heat_ok', True):
+                        ms = row['macro_sector']
+                        current_exp = sector_exp.get(ms, 0)
+                        new_exp = current_exp + (ps['invested'] / cfg.TOTAL_CAPITAL)
+                        sector_ok = new_exp <= cfg.MAX_SECTOR_EXP
+                        
+                        sizing_data.append({
+                            'Ticker': row['ticker'],
+                            'Entry': entry,
+                            'Stop': stop,
+                            'Shares': ps['shares'],
+                            'Invested': ps['invested'],
+                            'Risk Amount': ps['risk_amount'],
+                            'Risk %': ps['risk_pct'],
+                            'Heat Contrib %': ps['heat_contrib'] * 100,
+                            'Sector': ms,
+                            'Sector Exp %': current_exp * 100,
+                            'New Sector Exp %': new_exp * 100,
+                            'Sector OK': sector_ok,
+                            'Trade Type': row.get('trade_type', 'SWING'),
+                        })
+                except Exception as e:
+                    continue
         
         if sizing_data:
             sizing_df = pd.DataFrame(sizing_data)
-            sizing_df = sizing_df.sort_values('Priority_Rank' if 'Priority_Rank' in sizing_df.columns else 'Invested', 
-                                             ascending=False)
             
             # Display sizing table
             display_sizing = sizing_df.copy()
@@ -913,45 +1030,48 @@ with tab2:
             
             # Get positions with sector data
             if not open_trades.empty:
-                sector_data = open_trades.groupby('macro_sector')['capital_invested'].sum().reset_index()
-                sector_data['Pct'] = sector_data['capital_invested'] / cfg.TOTAL_CAPITAL * 100
-                
-                # Treemap
-                fig_treemap = go.Figure(go.Treemap(
-                    labels=sector_data['macro_sector'],
-                    values=sector_data['capital_invested'],
-                    text=sector_data['Pct'].apply(lambda x: f"{x:.1f}%"),
-                    textinfo="label+text",
-                    marker=dict(
-                        colors=sector_data['Pct'] / sector_data['Pct'].max() if sector_data['Pct'].max() > 0 else [1] * len(sector_data),
-                        colorscale='Blues',
-                        showscale=False,
-                    ),
-                    hovertemplate='<b>%{label}</b><br>Invested: ₹%{value:,.0f}<br>%{text}<extra></extra>',
-                ))
-                
-                fig_treemap.update_layout(
-                    height=400,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color='#b0bec5', size=13),
-                    margin=dict(l=10, r=10, t=10, b=10),
-                )
-                
-                st.plotly_chart(fig_treemap, use_container_width=True, config={'displayModeBar': False})
+                try:
+                    sector_data = open_trades.groupby('macro_sector')['capital_invested'].sum().reset_index()
+                    sector_data['Pct'] = sector_data['capital_invested'] / cfg.TOTAL_CAPITAL * 100
+                    
+                    # Treemap
+                    fig_treemap = go.Figure(go.Treemap(
+                        labels=sector_data['macro_sector'],
+                        values=sector_data['capital_invested'],
+                        text=sector_data['Pct'].apply(lambda x: f"{x:.1f}%"),
+                        textinfo="label+text",
+                        marker=dict(
+                            colors=sector_data['Pct'] / sector_data['Pct'].max() if sector_data['Pct'].max() > 0 else [1] * len(sector_data),
+                            colorscale='Blues',
+                            showscale=False,
+                        ),
+                        hovertemplate='<b>%{label}</b><br>Invested: ₹%{value:,.0f}<br>%{text}<extra></extra>',
+                    ))
+                    
+                    fig_treemap.update_layout(
+                        height=400,
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#b0bec5', size=13),
+                        margin=dict(l=10, r=10, t=10, b=10),
+                    )
+                    
+                    st.plotly_chart(fig_treemap, use_container_width=True, config={'displayModeBar': False})
+                except Exception as e:
+                    st.warning(f"Could not render treemap: {e}")
                 
                 # ── Sector Exposure Alert ──
                 st.markdown("#### ⚠️ Sector Exposure Alerts")
                 
-                exp_df = pd.DataFrame(list(sector_exp.items()), columns=['Sector', 'Exposure'])
-                exp_df['Exposure Pct'] = exp_df['Exposure'] * 100
-                exp_df['Limit'] = cfg.MAX_SECTOR_EXP * 100
-                exp_df['Status'] = exp_df.apply(
-                    lambda x: '⚠️ Near Limit' if x['Exposure Pct'] > x['Limit'] * 0.8 else '✅ Safe',
-                    axis=1
-                )
-                
-                if not exp_df.empty:
+                if sector_exp:
+                    exp_df = pd.DataFrame(list(sector_exp.items()), columns=['Sector', 'Exposure'])
+                    exp_df['Exposure Pct'] = exp_df['Exposure'] * 100
+                    exp_df['Limit'] = cfg.MAX_SECTOR_EXP * 100
+                    exp_df['Status'] = exp_df.apply(
+                        lambda x: '⚠️ Near Limit' if x['Exposure Pct'] > x['Limit'] * 0.8 else '✅ Safe',
+                        axis=1
+                    )
+                    
                     st.dataframe(
                         exp_df[['Sector', 'Exposure Pct', 'Limit', 'Status']],
                         use_container_width=True,
@@ -995,7 +1115,8 @@ with tab3:
                      delta="+" if pf > 1 else "-" if pf < 1 else "0",
                      delta_color="normal")
         with col5:
-            st.metric("Total P&L", f"₹{perf.get('total_pnl', 0):+,.0f}",
+            total_pnl = perf.get('total_pnl', 0)
+            st.metric("Total P&L", f"₹{total_pnl:+,.0f}",
                      delta_color="normal")
     
     # ── Equity Curve ──
@@ -1043,6 +1164,8 @@ with tab3:
         fig_equity.update_yaxes(title_text="Drawdown %", gridcolor='#1a1f2e', secondary_y=True)
         
         st.plotly_chart(fig_equity, use_container_width=True, config={'displayModeBar': False})
+    else:
+        st.info("No equity data available yet.")
     
     # ── Open Trades ──
     st.markdown("#### 🔓 Open Trades")
