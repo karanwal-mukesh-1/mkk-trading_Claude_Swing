@@ -497,6 +497,34 @@ def get_nifty_candles(days: int = 60) -> pd.DataFrame:
     return pd.DataFrame()
 
 
+@st.cache_data(ttl=60)
+def get_last_run():
+    db = get_db()
+    if db is None:
+        return None
+    try:
+        row = db.q(
+            "SELECT run_date, run_start, run_end, duration_sec, mode, "
+            "exits_processed, entries_taken FROM paper_sessions "
+            "ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=60)
+def get_macro_blackout_today():
+    db = get_db()
+    if db is None:
+        return False, "DB unavailable"
+    try:
+        today = date.today().isoformat()
+        return db.is_macro_blackout(today)
+    except Exception:
+        return False, "Check failed"
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # SIDEBAR - Professional Control Panel
 # ──────────────────────────────────────────────────────────────────────────────
@@ -597,25 +625,6 @@ with st.sidebar:
 
     # ─── Last Run ──
     st.markdown("<hr>", unsafe_allow_html=True)
-    last_run = get_last_run() if 'get_last_run' in dir() else None
-    
-    # Define get_last_run if not already defined
-    if 'get_last_run' not in dir():
-        @st.cache_data(ttl=60)
-        def get_last_run():
-            db = get_db()
-            if db is None:
-                return None
-            try:
-                row = db.q(
-                    "SELECT run_date, run_start, run_end, duration_sec, mode, "
-                    "exits_processed, entries_taken FROM paper_sessions "
-                    "ORDER BY created_at DESC LIMIT 1"
-                ).fetchone()
-                return dict(row) if row else None
-            except Exception:
-                return None
-    
     last_run = get_last_run()
     if last_run:
         dur = last_run.get('duration_sec', 0)
@@ -658,7 +667,7 @@ with col_time:
     """, unsafe_allow_html=True)
 
 with col_status:
-    is_bo, bo_reason = get_macro_blackout_today() if 'get_macro_blackout_today' in dir() else (False, "")
+    is_bo, bo_reason = get_macro_blackout_today()
     if is_bo:
         st.markdown(f"<div style='text-align:right;'><span style='background:rgba(255,23,68,0.12); color:#ff1744; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:600;'>🔴 {bo_reason[:20]}</span></div>", unsafe_allow_html=True)
     else:
@@ -796,17 +805,23 @@ with tabs[0]:
                 row=1, col=1
             )
             
-            # Volume
+            # Volume - FIXED: Handle NaN values properly
+            pct_changes = nifty_data['Close'].pct_change()
+            volume_colors = []
+            for val in pct_changes:
+                if pd.isna(val):
+                    volume_colors.append('#4a5a7a')  # neutral color for NaN
+                elif val >= 0:
+                    volume_colors.append('#00c853')
+                else:
+                    volume_colors.append('#ff1744')
+            
             fig_candle.add_trace(
                 go.Bar(
                     x=nifty_data.index,
                     y=nifty_data['Volume'],
                     name='Volume',
-                    marker=dict(
-                        color=nifty_data['Close'].pct_change().apply(
-                            lambda x: '#00c853' if x >= 0 else '#ff1744'
-                        )
-                    ),
+                    marker=dict(color=volume_colors),
                     opacity=0.6,
                 ),
                 row=2, col=1
@@ -870,8 +885,8 @@ with tabs[0]:
         
         if not nifty_data.empty:
             last = nifty_data['Close'].iloc[-1]
-            prev = nifty_data['Close'].iloc[-2]
-            change = ((last - prev) / prev * 100) if prev else 0
+            prev = nifty_data['Close'].iloc[-2] if len(nifty_data) > 1 else last
+            change = ((last - prev) / prev * 100) if prev and prev != 0 else 0
             change_color = '#00c853' if change >= 0 else '#ff1744'
             
             st.markdown(f"""
@@ -887,19 +902,20 @@ with tabs[0]:
             """, unsafe_allow_html=True)
             
             # Quick stats
-            ma20_val = nifty_data['Close'].rolling(20).mean().iloc[-1]
-            ma50_val = nifty_data['Close'].rolling(50).mean().iloc[-1]
-            st.markdown(f"""
-            <div style="margin-top:16px; font-size:13px; color:#b0bec5; line-height:2;">
-                <div><span style="color:#6b7a9f;">MA 20:</span> ₹{ma20_val:,.2f}</div>
-                <div><span style="color:#6b7a9f;">MA 50:</span> ₹{ma50_val:,.2f}</div>
-                <div><span style="color:#6b7a9f;">Position:</span> 
-                    <span style="color:{'#00c853' if last > ma20_val else '#ff1744'}">
-                        {('Above' if last > ma20_val else 'Below')} MA20
-                    </span>
+            if len(nifty_data) >= 20:
+                ma20_val = nifty_data['Close'].rolling(20).mean().iloc[-1]
+                ma50_val = nifty_data['Close'].rolling(50).mean().iloc[-1] if len(nifty_data) >= 50 else ma20_val
+                st.markdown(f"""
+                <div style="margin-top:16px; font-size:13px; color:#b0bec5; line-height:2;">
+                    <div><span style="color:#6b7a9f;">MA 20:</span> ₹{ma20_val:,.2f}</div>
+                    <div><span style="color:#6b7a9f;">MA 50:</span> ₹{ma50_val:,.2f}</div>
+                    <div><span style="color:#6b7a9f;">Position:</span> 
+                        <span style="color:{'#00c853' if last > ma20_val else '#ff1744'}">
+                            {('Above' if last > ma20_val else 'Below')} MA20
+                        </span>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -927,10 +943,11 @@ with tabs[1]:
         display_df['T3'] = display_df['target_t3'].apply(lambda x: f"₹{x:,.2f}")
         display_df['Capital'] = display_df['capital_required'].apply(lambda x: f"₹{x:,.0f}")
         
-        # Add live price column
-        display_df['Live'] = display_df['ticker'].apply(
-            lambda x: f"₹{get_live_price(x):,.2f}" if get_live_price(x) else '—'
-        )
+        # Add live price column - FIXED: Handle None values
+        def get_live_price_safe(ticker):
+            price = get_live_price(ticker)
+            return f"₹{price:,.2f}" if price else '—'
+        display_df['Live'] = display_df['ticker'].apply(get_live_price_safe)
         
         # Calculate gap from scan price
         def get_gap(row):
@@ -1133,11 +1150,17 @@ with tabs[2]:
     open_df = get_open_trades()
     if not open_df.empty:
         # Add live prices
-        open_df['Live'] = open_df['ticker'].apply(
-            lambda x: get_live_price(x) or float(x.get('entry_price', 0))
-        )
+        def get_live_price_safe(ticker):
+            price = get_live_price(ticker)
+            return price if price else 0
+        
+        open_df['Live'] = open_df['ticker'].apply(get_live_price_safe)
         open_df['P&L'] = (open_df['Live'] - open_df['entry_price']) * open_df['shares_remaining']
-        open_df['P&L %'] = (open_df['Live'] / open_df['entry_price'] - 1) * 100
+        
+        # Avoid division by zero
+        open_df['P&L %'] = 0.0
+        mask = open_df['entry_price'] > 0
+        open_df.loc[mask, 'P&L %'] = (open_df.loc[mask, 'Live'] / open_df.loc[mask, 'entry_price'] - 1) * 100
         
         display_open = open_df.copy()
         display_open['entry_price'] = display_open['entry_price'].apply(lambda x: f"₹{x:,.2f}")
@@ -1198,20 +1221,22 @@ with tabs[3]:
         if not trades_df.empty:
             fig_dist = make_subplots(rows=1, cols=3, subplot_titles=('R-Multiple Distribution', 'P&L by Sector', 'Exit Type'))
             
-            # R-Multiple Distribution
-            fig_dist.add_trace(
-                go.Histogram(
-                    x=trades_df['r_multiple'],
-                    nbinsx=30,
-                    marker=dict(
-                        color=trades_df['r_multiple'].apply(
-                            lambda x: '#00c853' if x >= 0 else '#ff1744'
-                        )
+            # R-Multiple Distribution - FIXED: Handle NaN values
+            valid_r = trades_df['r_multiple'].dropna()
+            if not valid_r.empty:
+                fig_dist.add_trace(
+                    go.Histogram(
+                        x=valid_r,
+                        nbinsx=30,
+                        marker=dict(
+                            color=valid_r.apply(
+                                lambda x: '#00c853' if x >= 0 else '#ff1744'
+                            )
+                        ),
+                        opacity=0.7,
                     ),
-                    opacity=0.7,
-                ),
-                row=1, col=1
-            )
+                    row=1, col=1
+                )
             
             # P&L by Sector
             sector_pnl = trades_df.groupby('macro_sector')['pnl_net'].sum().reset_index()
@@ -1230,16 +1255,17 @@ with tabs[3]:
             
             # Exit Type
             exit_counts = trades_df['exit_type'].value_counts().reset_index()
-            exit_counts.columns = ['exit_type', 'count']
-            fig_dist.add_trace(
-                go.Pie(
-                    labels=exit_counts['exit_type'],
-                    values=exit_counts['count'],
-                    hole=0.3,
-                    marker=dict(colors=['#42a5f5', '#ffd740', '#ff1744', '#00c853']),
-                ),
-                row=1, col=3
-            )
+            if not exit_counts.empty:
+                exit_counts.columns = ['exit_type', 'count']
+                fig_dist.add_trace(
+                    go.Pie(
+                        labels=exit_counts['exit_type'],
+                        values=exit_counts['count'],
+                        hole=0.3,
+                        marker=dict(colors=['#42a5f5', '#ffd740', '#ff1744', '#00c853']),
+                    ),
+                    row=1, col=3
+                )
             
             fig_dist.update_layout(
                 height=350,
@@ -1260,7 +1286,7 @@ with tabs[3]:
             display_trades['entry_price'] = display_trades['entry_price'].apply(lambda x: f"₹{x:,.2f}")
             display_trades['exit_price'] = display_trades['exit_price'].apply(lambda x: f"₹{x:,.2f}")
             display_trades['pnl_net'] = display_trades['pnl_net'].apply(lambda x: f"₹{x:+,.2f}")
-            display_trades['r_multiple'] = display_trades['r_multiple'].apply(lambda x: f"{x:+.2f}R")
+            display_trades['r_multiple'] = display_trades['r_multiple'].apply(lambda x: f"{x:+.2f}R" if pd.notna(x) else '—')
             
             st.dataframe(
                 display_trades[['ticker', 'exit_date', 'exit_type', 'entry_price', 'exit_price', 
@@ -1310,8 +1336,9 @@ with tabs[4]:
     with col3:
         max_pos = regime_data.get('max_positions', cfg.MAX_POSITIONS)
         n_open = snapshot.get('open_positions', 0)
+        pct_util = ((n_open / max_pos) * 100) if max_pos else 0
         st.metric("Position Utilization", f"{n_open}/{max_pos}", 
-                 delta=f"{((n_open/max_pos)*100 if max_pos else 0):.0f}%")
+                 delta=f"{pct_util:.0f}%")
     
     with col4:
         sector_exp = get_sector_exposure()
@@ -1370,7 +1397,7 @@ with tabs[5]:
         
         n_open = snapshot.get('open_positions', 0)
         max_pos = regime_data.get('max_positions', cfg.MAX_POSITIONS)
-        if n_open >= max_pos:
+        if n_open >= max_pos and max_pos > 0:
             alerts.append(("📊 Max Positions", f"{n_open}/{max_pos} filled", "warning"))
         
         dd = snapshot.get('drawdown_pct', 0)
@@ -1381,7 +1408,7 @@ with tabs[5]:
             if exp * 100 > cfg.MAX_SECTOR_EXP * 100 * 0.8:
                 alerts.append((f"🏢 Sector Limit", f"{sector}: {exp*100:.1f}% exposure", "warning"))
         
-        is_bo, bo_reason = get_macro_blackout_today() if 'get_macro_blackout_today' in dir() else (False, "")
+        is_bo, bo_reason = get_macro_blackout_today()
         if is_bo:
             alerts.append(("🚫 Blackout Day", bo_reason, "error"))
         
