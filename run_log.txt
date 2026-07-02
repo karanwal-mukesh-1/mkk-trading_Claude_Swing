@@ -2511,3 +2511,64 @@
 2026-07-01 13:34:11,741 [INFO] Integrity: OK
 2026-07-01 13:34:11,741 [INFO] Daily run complete: 332s | 1 entries | 1 exits
 2026-07-01 13:34:11,743 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-07-02 12:26:45,050 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-07-02T12:26:45.050169 ═══
+2026-07-02 12:26:45,051 [INFO] DB connected: mkk_system.db
+2026-07-02 12:26:45,695 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-07-02 12:26:45,697 [INFO] Regime: BULL_WK (score=68)
+2026-07-02 12:26:45,703 [INFO] Universe: 2190 tickers
+2026-07-02 12:26:45,705 [INFO] Processing exits for 2 open trades...
+2026-07-02 12:26:45,877 [INFO] Paper exit: EXIT_PAPER_NRBBEARING_20260629_141233_122645 | STOPPED_OUT | R=0.00
+2026-07-02 12:26:45,879 [INFO] Exits processed: 1
+2026-07-02 12:26:45,883 [INFO] Computing sector heatmap...
+2026-07-02 12:26:46,007 [INFO] Scan start: 2190 stocks | BULL_WK
+2026-07-02 12:27:26,088 [INFO]   Progress: 250/2190 setups=3 0.7min
+2026-07-02 12:28:04,477 [INFO]   Progress: 500/2190 setups=6 1.3min
+2026-07-02 12:28:42,072 [INFO]   Progress: 750/2190 setups=12 1.9min
+2026-07-02 12:29:22,490 [INFO]   Progress: 1000/2190 setups=13 2.6min
+2026-07-02 12:30:00,673 [INFO]   Progress: 1250/2190 setups=15 3.2min
+2026-07-02 12:30:42,503 [INFO]   Progress: 1500/2190 setups=16 3.9min
+2026-07-02 12:31:19,789 [INFO]   Progress: 1750/2190 setups=20 4.5min
+2026-07-02 12:31:59,248 [INFO]   Progress: 2000/2190 setups=23 5.2min
+2026-07-02 12:32:28,592 [INFO] Scan done: 26 setups in 5.7min
+2026-07-02 12:32:28,593 [INFO] ── SCAN FUNNEL ─────────────────────────────────────────
+2026-07-02 12:32:28,593 [INFO]   Total scanned    : 2190
+2026-07-02 12:32:28,593 [INFO]   Data failed      : 35
+2026-07-02 12:32:28,593 [INFO]   Price/vol pass   : 803
+2026-07-02 12:32:28,593 [INFO]   Trend pass       : 219
+2026-07-02 12:32:28,593 [INFO]   Consolidation    : 130
+2026-07-02 12:32:28,593 [INFO]   Momentum         : 91
+2026-07-02 12:32:28,593 [INFO]   RS pass          : 57
+2026-07-02 12:32:28,593 [INFO]   RS slope pass    : 44
+2026-07-02 12:32:28,593 [INFO]   VCP pass         : 26
+2026-07-02 12:32:28,593 [INFO]   Corr filtered    : 0
+2026-07-02 12:32:28,593 [INFO]   Sector blocked   : 0
+2026-07-02 12:32:28,593 [INFO]   Macro blackout   : 0
+2026-07-02 12:32:28,593 [INFO]   Score filtered   : 0
+2026-07-02 12:32:28,593 [INFO]   Heat blocked     : 0
+2026-07-02 12:32:28,593 [INFO]   ELITE SETUPS     : 26
+2026-07-02 12:32:28,593 [INFO] ────────────────────────────────────────────────────────
+2026-07-02 12:32:28,593 [INFO] Computing sector heatmap...
+2026-07-02 12:32:28,601 [INFO] Saved 26 results to DB
+2026-07-02 12:32:28,604 [INFO] Entry slots available: 5 | Evaluating 26 setups...
+2026-07-02 12:32:29,052 [INFO] DEEPAKFERT: sector Other exposure limit reached
+2026-07-02 12:32:29,061 [INFO] MANINDS: sector Other exposure limit reached
+2026-07-02 12:32:29,137 [INFO] Paper entry: PAPER_SPARC_20260702_123229 @ ₹238.99
+2026-07-02 12:32:29,137 [INFO] PAPER ENTRY: SPARC @ ₹238.99 | Stop ₹212.69 | T3 ₹317.89 | Qty 228 | SWING
+2026-07-02 12:32:29,146 [INFO] SBCL: sector Other exposure limit reached
+2026-07-02 12:32:29,156 [INFO] SENORES: sector Other exposure limit reached
+2026-07-02 12:32:29,165 [INFO] RAYMOND: sector Other exposure limit reached
+2026-07-02 12:32:29,174 [INFO] TVSSCS: sector Other exposure limit reached
+2026-07-02 12:32:29,184 [INFO] AKUMS: sector Other exposure limit reached
+2026-07-02 12:32:29,193 [INFO] JAMNAAUTO: sector Other exposure limit reached
+2026-07-02 12:32:29,202 [INFO] VERANDA: sector Other exposure limit reached
+2026-07-02 12:32:29,211 [INFO] DJML: sector Other exposure limit reached
+2026-07-02 12:32:29,220 [INFO] TBZ: sector Other exposure limit reached
+2026-07-02 12:32:29,229 [INFO] FEDERALBNK: sector Other exposure limit reached
+2026-07-02 12:32:29,239 [INFO] DIACABS: sector Other exposure limit reached
+2026-07-02 12:32:29,248 [INFO] GAIL: sector Other exposure limit reached
+2026-07-02 12:32:29,248 [INFO] Entries taken: 1
+2026-07-02 12:32:29,332 [INFO] Portfolio snapshot: deployed=₹108,970 unreal=₹1,362 heat=2.4%
+2026-07-02 12:32:30,575 [INFO] Email sent: MKK Paper Trading | 2026-07-02 | BULL_WK | 1 entries | 1 exits
+2026-07-02 12:32:30,577 [INFO] Integrity: OK
+2026-07-02 12:32:30,577 [INFO] Daily run complete: 345s | 1 entries | 1 exits
+2026-07-02 12:32:30,579 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
