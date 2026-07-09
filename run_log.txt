@@ -2787,3 +2787,56 @@
 2026-07-08 11:56:47,438 [INFO] Integrity: OK
 2026-07-08 11:56:47,438 [INFO] Daily run complete: 630s | 1 entries | 1 exits
 2026-07-08 11:56:47,440 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-07-09 12:39:52,159 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-07-09T12:39:52.159756 ═══
+2026-07-09 12:39:52,161 [INFO] DB connected: mkk_system.db
+2026-07-09 12:39:52,709 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-07-09 12:39:52,711 [INFO] Regime: NEUTRAL (score=51)
+2026-07-09 12:39:52,714 [INFO] Universe: 2190 tickers
+2026-07-09 12:39:52,717 [INFO] Processing exits for 2 open trades...
+2026-07-09 12:39:52,855 [INFO] Paper exit: EXIT_PAPER_JTLIND_20260701_133410_123952 | STOPPED_OUT | R=0.02
+2026-07-09 12:39:52,856 [INFO] Exits processed: 1
+2026-07-09 12:39:52,859 [INFO] Computing sector heatmap...
+2026-07-09 12:39:52,951 [INFO] Scan start: 2190 stocks | NEUTRAL
+2026-07-09 12:40:39,260 [INFO]   Progress: 250/2190 setups=0 0.8min
+2026-07-09 12:41:30,118 [INFO]   Progress: 500/2190 setups=0 1.6min
+2026-07-09 12:42:23,248 [INFO]   Progress: 750/2190 setups=1 2.5min
+2026-07-09 12:43:13,422 [INFO]   Progress: 1000/2190 setups=3 3.3min
+2026-07-09 12:44:01,220 [INFO]   Progress: 1250/2190 setups=5 4.1min
+2026-07-09 12:44:55,673 [INFO]   Progress: 1500/2190 setups=6 5.0min
+2026-07-09 12:45:43,956 [INFO]   Progress: 1750/2190 setups=7 5.8min
+2026-07-09 12:46:39,819 [INFO]   Progress: 2000/2190 setups=8 6.8min
+2026-07-09 12:47:18,600 [INFO] Scan done: 8 setups in 7.4min
+2026-07-09 12:47:18,600 [INFO] ── SCAN FUNNEL ─────────────────────────────────────────
+2026-07-09 12:47:18,600 [INFO]   Total scanned    : 2190
+2026-07-09 12:47:18,600 [INFO]   Data failed      : 31
+2026-07-09 12:47:18,600 [INFO]   Price/vol pass   : 809
+2026-07-09 12:47:18,600 [INFO]   Trend pass       : 128
+2026-07-09 12:47:18,600 [INFO]   Consolidation    : 60
+2026-07-09 12:47:18,600 [INFO]   Momentum         : 40
+2026-07-09 12:47:18,600 [INFO]   RS pass          : 27
+2026-07-09 12:47:18,600 [INFO]   RS slope pass    : 19
+2026-07-09 12:47:18,600 [INFO]   VCP pass         : 9
+2026-07-09 12:47:18,601 [INFO]   Corr filtered    : 0
+2026-07-09 12:47:18,601 [INFO]   Sector blocked   : 0
+2026-07-09 12:47:18,601 [INFO]   Macro blackout   : 0
+2026-07-09 12:47:18,601 [INFO]   Score filtered   : 1
+2026-07-09 12:47:18,601 [INFO]   Heat blocked     : 0
+2026-07-09 12:47:18,601 [INFO]   ELITE SETUPS     : 8
+2026-07-09 12:47:18,601 [INFO] ────────────────────────────────────────────────────────
+2026-07-09 12:47:18,601 [INFO] Computing sector heatmap...
+2026-07-09 12:47:18,608 [INFO] Saved 8 results to DB
+2026-07-09 12:47:18,610 [INFO] Entry slots available: 3 | Evaluating 8 setups...
+2026-07-09 12:47:19,882 [INFO] NAM-INDIA: gap down (-4.2%) — skip
+2026-07-09 12:47:19,883 [INFO] RPTECH: gap down (-4.9%) — skip
+2026-07-09 12:47:19,891 [INFO] STARHEALTH: sector Other exposure limit reached
+2026-07-09 12:47:19,898 [INFO] FEDERALBNK: sector Other exposure limit reached
+2026-07-09 12:47:19,906 [INFO] JSWCEMENT: sector Other exposure limit reached
+2026-07-09 12:47:19,907 [INFO] MINDACORP: gap down (-3.2%) — skip
+2026-07-09 12:47:19,914 [INFO] IONEXCHANG: sector Other exposure limit reached
+2026-07-09 12:47:19,922 [INFO] KIMS: sector Other exposure limit reached
+2026-07-09 12:47:19,922 [INFO] Entries taken: 0
+2026-07-09 12:47:20,010 [INFO] Portfolio snapshot: deployed=₹68,551 unreal=₹1,223 heat=1.2%
+2026-07-09 12:47:21,646 [INFO] Email sent: MKK Paper Trading | 2026-07-09 | NEUTRAL | 0 entries | 1 exits
+2026-07-09 12:47:21,648 [INFO] Integrity: OK
+2026-07-09 12:47:21,648 [INFO] Daily run complete: 449s | 0 entries | 1 exits
+2026-07-09 12:47:21,649 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
