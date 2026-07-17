@@ -3081,3 +3081,50 @@
 2026-07-16 11:45:46,684 [INFO] Integrity: OK
 2026-07-16 11:45:46,685 [INFO] Daily run complete: 642s | 0 entries | 0 exits
 2026-07-16 11:45:46,686 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-07-17 11:34:43,469 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-07-17T11:34:43.469088 ═══
+2026-07-17 11:34:43,470 [INFO] DB connected: mkk_system.db
+2026-07-17 11:34:44,022 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-07-17 11:34:44,025 [INFO] Regime: NEUTRAL (score=46)
+2026-07-17 11:34:44,028 [INFO] Universe: 2190 tickers
+2026-07-17 11:34:44,030 [INFO] Processing exits for 2 open trades...
+2026-07-17 11:34:44,168 [INFO] Paper exit: EXIT_PAPER_SPAL_20260710_124120_113444 | STOPPED_OUT | R=-0.57
+2026-07-17 11:34:44,168 [INFO] Exits processed: 1
+2026-07-17 11:34:44,171 [INFO] Computing sector heatmap...
+2026-07-17 11:34:44,263 [INFO] Scan start: 2190 stocks | NEUTRAL
+2026-07-17 11:35:37,451 [INFO]   Progress: 250/2190 setups=0 0.9min
+2026-07-17 11:36:33,726 [INFO]   Progress: 500/2190 setups=1 1.8min
+2026-07-17 11:37:39,546 [INFO]   Progress: 750/2190 setups=1 2.9min
+2026-07-17 11:38:39,877 [INFO]   Progress: 1000/2190 setups=1 3.9min
+2026-07-17 11:39:36,765 [INFO]   Progress: 1250/2190 setups=1 4.9min
+2026-07-17 11:40:35,962 [INFO]   Progress: 1500/2190 setups=1 5.8min
+2026-07-17 11:41:34,519 [INFO]   Progress: 1750/2190 setups=1 6.8min
+2026-07-17 11:42:29,811 [INFO]   Progress: 2000/2190 setups=1 7.8min
+2026-07-17 11:43:16,552 [INFO] Scan done: 1 setups in 8.5min
+2026-07-17 11:43:16,553 [INFO] ── SCAN FUNNEL ─────────────────────────────────────────
+2026-07-17 11:43:16,553 [INFO]   Total scanned    : 2190
+2026-07-17 11:43:16,553 [INFO]   Data failed      : 29
+2026-07-17 11:43:16,553 [INFO]   Price/vol pass   : 808
+2026-07-17 11:43:16,553 [INFO]   Trend pass       : 119
+2026-07-17 11:43:16,553 [INFO]   Consolidation    : 54
+2026-07-17 11:43:16,553 [INFO]   Momentum         : 47
+2026-07-17 11:43:16,553 [INFO]   RS pass          : 25
+2026-07-17 11:43:16,553 [INFO]   RS slope pass    : 15
+2026-07-17 11:43:16,553 [INFO]   VCP pass         : 1
+2026-07-17 11:43:16,553 [INFO]   Corr filtered    : 0
+2026-07-17 11:43:16,553 [INFO]   Sector blocked   : 0
+2026-07-17 11:43:16,553 [INFO]   Macro blackout   : 0
+2026-07-17 11:43:16,553 [INFO]   Score filtered   : 0
+2026-07-17 11:43:16,553 [INFO]   Heat blocked     : 0
+2026-07-17 11:43:16,553 [INFO]   ELITE SETUPS     : 1
+2026-07-17 11:43:16,553 [INFO] ────────────────────────────────────────────────────────
+2026-07-17 11:43:16,553 [INFO] Computing sector heatmap...
+2026-07-17 11:43:16,559 [INFO] Saved 1 results to DB
+2026-07-17 11:43:16,561 [INFO] Entry slots available: 3 | Evaluating 1 setups...
+2026-07-17 11:43:16,848 [INFO] Paper entry: PAPER_BHARATFORG_20260717_114316 @ ₹2101.0
+2026-07-17 11:43:16,848 [INFO] PAPER ENTRY: BHARATFORG @ ₹2101.00 | Stop ₹1904.28 | T3 ₹2691.16 | Qty 26 | SWING
+2026-07-17 11:43:16,848 [INFO] Entries taken: 1
+2026-07-17 11:43:16,938 [INFO] Portfolio snapshot: deployed=₹123,177 unreal=₹3,695 heat=2.2%
+2026-07-17 11:43:18,006 [INFO] Email sent: MKK Paper Trading | 2026-07-17 | NEUTRAL | 1 entries | 1 exits
+2026-07-17 11:43:18,008 [INFO] Integrity: OK
+2026-07-17 11:43:18,008 [INFO] Daily run complete: 514s | 1 entries | 1 exits
+2026-07-17 11:43:18,009 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
