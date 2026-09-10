@@ -4895,3 +4895,50 @@
 2026-09-09 13:59:17,987 [INFO] Integrity: OK
 2026-09-09 13:59:17,987 [INFO] Daily run complete: 344s | 0 entries | 0 exits
 2026-09-09 13:59:17,989 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-09-10 13:54:59,726 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-09-10T13:54:59.726117 ═══
+2026-09-10 13:54:59,727 [INFO] DB connected: mkk_system.db
+2026-09-10 13:55:00,176 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-09-10 13:55:00,178 [INFO] Regime: BEAR_WK (score=26)
+2026-09-10 13:55:00,183 [INFO] Universe: 2190 tickers
+2026-09-10 13:55:00,186 [INFO] Processing exits for 2 open trades...
+2026-09-10 13:55:00,315 [INFO] Paper exit: EXIT_PAPER_PPLPHARMA_20260903_135421_135500 | STOPPED_OUT | R=0.24
+2026-09-10 13:55:00,317 [INFO] Exits processed: 1
+2026-09-10 13:55:00,320 [INFO] Computing sector heatmap...
+2026-09-10 13:55:00,404 [INFO] Scan start: 2190 stocks | BEAR_WK
+2026-09-10 13:55:42,809 [INFO]   Progress: 250/2190 setups=1 0.7min
+2026-09-10 13:56:34,774 [INFO]   Progress: 500/2190 setups=2 1.6min
+2026-09-10 13:57:24,119 [INFO]   Progress: 750/2190 setups=2 2.4min
+2026-09-10 13:58:15,135 [INFO]   Progress: 1000/2190 setups=3 3.2min
+2026-09-10 13:59:03,017 [INFO]   Progress: 1250/2190 setups=4 4.0min
+2026-09-10 13:59:51,516 [INFO]   Progress: 1500/2190 setups=5 4.8min
+2026-09-10 14:00:35,070 [INFO]   Progress: 1750/2190 setups=5 5.6min
+2026-09-10 14:01:18,473 [INFO]   Progress: 2000/2190 setups=7 6.3min
+2026-09-10 14:01:56,633 [INFO] Scan done: 7 setups in 6.9min
+2026-09-10 14:01:56,633 [INFO] ── SCAN FUNNEL ─────────────────────────────────────────
+2026-09-10 14:01:56,633 [INFO]   Total scanned    : 2190
+2026-09-10 14:01:56,633 [INFO]   Data failed      : 21
+2026-09-10 14:01:56,633 [INFO]   Price/vol pass   : 790
+2026-09-10 14:01:56,633 [INFO]   Trend pass       : 94
+2026-09-10 14:01:56,633 [INFO]   Consolidation    : 42
+2026-09-10 14:01:56,633 [INFO]   Momentum         : 34
+2026-09-10 14:01:56,633 [INFO]   RS pass          : 28
+2026-09-10 14:01:56,633 [INFO]   RS slope pass    : 25
+2026-09-10 14:01:56,634 [INFO]   VCP pass         : 9
+2026-09-10 14:01:56,634 [INFO]   Corr filtered    : 1
+2026-09-10 14:01:56,634 [INFO]   Sector blocked   : 0
+2026-09-10 14:01:56,634 [INFO]   Macro blackout   : 0
+2026-09-10 14:01:56,634 [INFO]   Score filtered   : 1
+2026-09-10 14:01:56,634 [INFO]   Heat blocked     : 0
+2026-09-10 14:01:56,634 [INFO]   ELITE SETUPS     : 7
+2026-09-10 14:01:56,634 [INFO] ────────────────────────────────────────────────────────
+2026-09-10 14:01:56,634 [INFO] Computing sector heatmap...
+2026-09-10 14:01:56,640 [INFO] Saved 7 results to DB
+2026-09-10 14:01:56,642 [INFO] Entry slots available: 1 | Evaluating 7 setups...
+2026-09-10 14:01:57,301 [INFO] Paper entry: PAPER_AVADHSUGAR_20260910_140157 @ ₹818.5
+2026-09-10 14:01:57,301 [INFO] PAPER ENTRY: AVADHSUGAR @ ₹818.50 | Stop ₹689.59 | T3 ₹1334.14 | Qty 4 | POSITIONAL
+2026-09-10 14:01:57,302 [INFO] Entries taken: 1
+2026-09-10 14:01:57,393 [INFO] Portfolio snapshot: deployed=₹52,063 unreal=₹390 heat=0.7%
+2026-09-10 14:01:59,038 [INFO] Email sent: MKK Paper Trading | 2026-09-10 | BEAR_WK | 1 entries | 1 exits
+2026-09-10 14:01:59,040 [INFO] Integrity: OK
+2026-09-10 14:01:59,040 [INFO] Daily run complete: 419s | 1 entries | 1 exits
+2026-09-10 14:01:59,042 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
