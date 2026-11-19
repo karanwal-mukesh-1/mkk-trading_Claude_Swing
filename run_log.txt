@@ -5990,3 +5990,50 @@
 2026-11-18 17:54:36,063 [INFO] Integrity: OK
 2026-11-18 17:54:36,063 [INFO] Daily run complete: 508s | 0 entries | 0 exits
 2026-11-18 17:54:36,067 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
+2026-11-19 17:41:19,976 [INFO] ═══ MKK AUTOMATION START | mode=DAILY | 2026-11-19T17:41:19.976015 ═══
+2026-11-19 17:41:19,980 [INFO] DB connected: mkk_system.db
+2026-11-19 17:41:20,540 [INFO] Benchmarks loaded: n50=True n500=True mid=True
+2026-11-19 17:41:20,541 [INFO] Regime: BULL (score=76)
+2026-11-19 17:41:20,544 [INFO] Universe: 2190 tickers
+2026-11-19 17:41:20,545 [INFO] Processing exits for 1 open trades...
+2026-11-19 17:41:20,680 [INFO] Exits processed: 0
+2026-11-19 17:41:20,683 [INFO] Computing sector heatmap...
+2026-11-19 17:41:20,872 [INFO] Scan start: 2190 stocks | BULL
+2026-11-19 17:41:58,569 [INFO]   Progress: 250/2190 setups=1 0.6min
+2026-11-19 17:42:36,199 [INFO]   Progress: 500/2190 setups=1 1.2min
+2026-11-19 17:43:15,860 [INFO]   Progress: 750/2190 setups=1 1.9min
+2026-11-19 17:43:53,957 [INFO]   Progress: 1000/2190 setups=1 2.5min
+2026-11-19 17:44:28,808 [INFO]   Progress: 1250/2190 setups=1 3.1min
+2026-11-19 17:45:04,602 [INFO]   Progress: 1500/2190 setups=1 3.7min
+2026-11-19 17:45:38,048 [INFO]   Progress: 1750/2190 setups=1 4.3min
+2026-11-19 17:46:16,151 [INFO]   Progress: 2000/2190 setups=3 4.9min
+2026-11-19 17:46:43,712 [INFO] Scan done: 3 setups in 5.4min
+2026-11-19 17:46:43,712 [INFO] ── SCAN FUNNEL ─────────────────────────────────────────
+2026-11-19 17:46:43,712 [INFO]   Total scanned    : 2190
+2026-11-19 17:46:43,712 [INFO]   Data failed      : 26
+2026-11-19 17:46:43,712 [INFO]   Price/vol pass   : 798
+2026-11-19 17:46:43,712 [INFO]   Trend pass       : 87
+2026-11-19 17:46:43,712 [INFO]   Consolidation    : 56
+2026-11-19 17:46:43,712 [INFO]   Momentum         : 44
+2026-11-19 17:46:43,712 [INFO]   RS pass          : 16
+2026-11-19 17:46:43,712 [INFO]   RS slope pass    : 10
+2026-11-19 17:46:43,712 [INFO]   VCP pass         : 3
+2026-11-19 17:46:43,712 [INFO]   Corr filtered    : 0
+2026-11-19 17:46:43,712 [INFO]   Sector blocked   : 0
+2026-11-19 17:46:43,712 [INFO]   Macro blackout   : 0
+2026-11-19 17:46:43,712 [INFO]   Score filtered   : 0
+2026-11-19 17:46:43,712 [INFO]   Heat blocked     : 0
+2026-11-19 17:46:43,712 [INFO]   ELITE SETUPS     : 3
+2026-11-19 17:46:43,712 [INFO] ────────────────────────────────────────────────────────
+2026-11-19 17:46:43,712 [INFO] Computing sector heatmap...
+2026-11-19 17:46:43,717 [INFO] Saved 3 results to DB
+2026-11-19 17:46:43,719 [INFO] Entry slots available: 7 | Evaluating 3 setups...
+2026-11-19 17:46:44,099 [INFO] SSWL: sector Other exposure limit reached
+2026-11-19 17:46:44,105 [INFO] ACUTAAS: sector Other exposure limit reached
+2026-11-19 17:46:44,110 [INFO] SOUTHBANK: sector Other exposure limit reached
+2026-11-19 17:46:44,110 [INFO] Entries taken: 0
+2026-11-19 17:46:44,392 [INFO] Portfolio snapshot: deployed=₹60,800 unreal=₹4,000 heat=1.2%
+2026-11-19 17:46:45,410 [INFO] Email sent: MKK Paper Trading | 2026-11-19 | BULL | 0 entries | 0 exits
+2026-11-19 17:46:45,412 [INFO] Integrity: OK
+2026-11-19 17:46:45,412 [INFO] Daily run complete: 325s | 0 entries | 0 exits
+2026-11-19 17:46:45,414 [INFO] ═══ MKK AUTOMATION COMPLETE | success=True ═══
